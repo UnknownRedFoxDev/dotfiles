@@ -1,0 +1,12 @@
+[window]
+decorations = "Full"
+startup_mode = "Maximized"
+dynamic_title = true
+
+[font]
+normal = { family = "FiraCode Nerd Font",  style = "Retina" }
+size = 14
+
+[terminal]
+
+shell = { program = "wsl.exe", args = ["~", "--cd /home/unknownredfoxo"]}
