@@ -11,3 +11,19 @@ vim.opt.smartindent = true -- Enable smart indentation
 vim.opt.autoindent = true -- Maintain indentation from previous line
 lvim.builtin.autopairs.active = false
 vim.opt.relativenumber = true
+
+vim.o.showtabline = 2
+
+lvim.plugins = {
+    { "EdenEast/nightfox.nvim" }, -- lazy
+    {
+        'nanozuki/tabby.nvim',
+        -- event = 'VimEnter', -- if you want lazy load, see below
+        dependencies = 'nvim-tree/nvim-web-devicons',
+
+    },
+    { "glepnir/galaxyline.nvim" }
+}
+
+lvim.colorscheme = "duskfox"
+
