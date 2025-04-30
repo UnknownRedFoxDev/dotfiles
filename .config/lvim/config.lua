@@ -4,6 +4,24 @@
 -- Forum: https://www.reddit.com/r/lunarvim/
 -- Discord: https://discord.com/invite/Xb9B4Ny
 
+-- test with llm slop
+
+lvim.builtin.bufferline.active = true  -- Required for buffer management
+vim.opt.showtabline = 2  -- Force Tabby's tabline visibility
+
+-- 2. Hide bufferline's UI elements
+lvim.builtin.bufferline.options = {
+  mode = "buffers",
+  offsets = { { filetype = "NvimTree", text = "" } },
+  separator_style = "slant",  -- Doesn't matter since we'll hide
+  show_buffer_close_icons = false,
+  show_close_icon = false,
+  show_tab_indicators = false,
+  always_show_bufferline = false,  -- Critical: Hides the line[2][4]
+  hover = { enabled = false }       -- Disable hover highlights
+}
+
+
 lvim.builtin.lualine.active = "none"
 lvim.colorscheme = "duskfox"
 
