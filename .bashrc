@@ -122,15 +122,14 @@ if ! shopt -oq posix; then
   fi
 fi
 
-which oh-my-posh > /dev/null
-
-if [ $? -ne 0 ] ; then
-    curl -s https://ohmyposh.dev/install.sh | bash -s > /dev/null
-fi
-
 
 export PATH=$PATH:"$HOME/.local/bin"
+export APPDATA="$HOME/unknownredfoxo/AppData/Roaming"
+export LOCALAPPDATA="$HOME/unknownredfoxo/AppData/Local"
+export WINDOWSHOME="/mnt/c/Users/unknownredfoxo/"
 clear
+
+eval "$(starship init bash)"
 neofetch
-eval "$(oh-my-posh init bash --config ~/.poshthemes/kushal.omp.json)"
 export EDITOR='lvim'
+alias cls='clear'
