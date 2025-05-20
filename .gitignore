@@ -18,11 +18,9 @@
 .config/menus/applications-merged
 .npm
 .npm-global
-unknownredfoxo
 test.sh
 package-lock.json
 go
-Programming
 .zsh_history
 .zcompdump-FoxoComputer-5.9.zwc
 .zcompdump-FoxoComputer-5.9
@@ -40,3 +38,4 @@ snap
 .lesshst
 .motd_shown
 .npmrc
+.oh-my-zsh
