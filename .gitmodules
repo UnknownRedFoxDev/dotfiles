@@ -1,0 +1,3 @@
+[submodule "testRepo"]
+	path = testRepo
+	url = git@github.com:UnknownRedFoxDev/testRepo.git
