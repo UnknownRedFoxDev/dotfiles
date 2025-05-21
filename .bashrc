@@ -129,7 +129,8 @@ export LOCALAPPDATA="$HOME/unknownredfoxo/AppData/Local"
 export WINDOWSHOME="/mnt/c/Users/unknownredfoxo/"
 clear
 
-eval "$(starship init bash)"
+# eval "$(starship init bash)"
 neofetch
 export EDITOR='lvim'
 alias cls='clear'
+. "$HOME/.cargo/env"
