@@ -23,7 +23,12 @@ return {
             },
         },
         opts = {
-            keymap = { preset = "super-tab" },
+            keymap = {
+                preset = "super-tab",
+                -- Override specific keys to disable snippet jumping
+                ["<Tab>"] = { "select_and_accept", "fallback" },
+                ["<S-Tab>"] = { "select_prev", "fallback" },
+            },
             appearance = { nerd_font_variant = "mono" },
             sources = {
                 default = { "lsp", "path", "snippets", "lazydev" },
