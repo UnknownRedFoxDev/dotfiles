@@ -78,3 +78,17 @@ function AlignSections(opts)
 
     vim.api.nvim_buf_set_lines(0, f_line - 1, l_line, false, new_lines)
 end
+
+function RunCommand()
+    local cmd = vim.fn.input("Run command: ")
+
+    if cmd == "" then
+        return
+    end
+
+    vim.cmd('botright 16split')
+    vim.cmd('terminal ' .. cmd)
+    -- vim.cmd('normal! gg') -- Go to the top of the buffer
+    vim.cmd('normal! G')  -- Go to the bottom the buffer
+end
+

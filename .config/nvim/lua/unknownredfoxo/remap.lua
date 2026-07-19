@@ -31,5 +31,6 @@ vim.keymap.set("n", "<C-J>", "yyp", { noremap = true, silent = true })
 vim.keymap.set("n", "<A-t>", AddTodo)
 vim.keymap.set("n", "<A-f>", FindToDoByTimestamp)
 
--- Updated Mapping: This calls the command which then triggers the prompt
 vim.keymap.set("v", "<Leader>a", ":AlignRegex<CR>", { silent = true })
+
+vim.keymap.set("n", "<A-x>", RunCommand)
