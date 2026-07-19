@@ -27,7 +27,12 @@ vim.api.nvim_create_user_command("Format", function(args)
     require("conform").format({ async = true, lsp_format = "fallback", range = range })
 end, { range = true })
 
-
+vim.api.nvim_create_user_command('Run', function(opts)
+    vim.cmd('botright 16split')
+    vim.cmd('terminal ' .. opts.args)
+    vim.cmd('normal! G')
+end, { nargs = '+' }
+)
 
 vim.api.nvim_create_user_command("AddTodo", AddTodo, {})
 vim.api.nvim_create_user_command("FindTODO", FindToDoByTimestamp, {})
