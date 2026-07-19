@@ -128,7 +128,14 @@ function RunCommand()
         end
     end
 
-    vim.cmd('terminal ' .. cmd)
+    local shell = vim.o.shell
+    local cwd = vim.uv.cwd()
+    -- \\033[0m
+    local header = string.format("printf '-*- mode: command; default-directory: \"%%s\" -*-\\nCommand started at %%s\\n\\n%%s\\n'; %s", cmd)
+
+    local wrapped_cmd = string.format("%s -c %s", shell, vim.fn.shellescape(string.format(header, cwd, os.date("%Y-%m-%d %H:%M:%S"), cmd)))
+
+    vim.cmd('terminal ' .. wrapped_cmd)
     -- vim.cmd('normal! gg') -- Go to the top of the buffer
     vim.cmd('normal! G')  -- Go to the bottom the buffer
     local current_buf = vim.api.nvim_get_current_buf()
