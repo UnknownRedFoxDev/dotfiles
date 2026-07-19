@@ -5,7 +5,6 @@ vim.api.nvim_create_autocmd("TextYankPost", {
         vim.highlight.on_yank()
     end,
 })
-
 vim.api.nvim_create_autocmd("BufWritePre", {
     pattern = "*",
     callback = function()
@@ -27,6 +26,20 @@ vim.api.nvim_create_user_command("Format", function(args)
     require("conform").format({ async = true, lsp_format = "fallback", range = range })
 end, { range = true })
 
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "dired",
+    callback = function()
+        local full_path = vim.api.nvim_buf_get_name(0)
+        local last_dir = vim.fn.fnamemodify(full_path, ":t")
+
+        if last_dir == "" then
+            last_dir = "root"
+        end
+
+        local new_name = "dired: " .. last_dir
+        vim.api.nvim_buf_set_name(0, new_name)
+    end,
+})
 
 vim.api.nvim_create_user_command("AddTodo", AddTodo, {})
 vim.api.nvim_create_user_command("FindTODO", FindToDoByTimestamp, {})

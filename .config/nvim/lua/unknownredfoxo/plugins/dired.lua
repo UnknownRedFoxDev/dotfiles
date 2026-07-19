@@ -9,6 +9,13 @@ return {
             show_hidden = true,
             show_icons = true,
             override_cwd = true,
+
+            keybinds = {
+                dired_copy_marked = "C",
+                dired_delete_marked = "X",
+                dired_move_marked = "m",
+            },
+
         })
     end,
 }
