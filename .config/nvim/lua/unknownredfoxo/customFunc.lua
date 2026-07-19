@@ -119,6 +119,13 @@ function RunCommand()
 
     if not target_win then
         vim.cmd('botright 16split')
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match(vim.pesc(buf_name) .. "$") then
+                target_buf = buf
+                break
+            end
+        end
     end
 
     vim.cmd('terminal ' .. cmd)
@@ -129,5 +136,17 @@ function RunCommand()
         vim.api.nvim_buf_delete(target_buf, { force = true })
     end
     vim.api.nvim_buf_set_name(current_buf, buf_name)
+end
+
+function DisplayBuffers()
+  local builtin = require('telescope.builtin')
+  local themes = require('telescope.themes')
+
+  -- Open the standard buffer list using a clean dropdown theme
+  builtin.buffers(themes.get_dropdown({
+    winblend = 10,
+    previewer = false, -- Turn off preview if you want it to look minimal like a mini-buffer
+    shorten_path = true,
+  }))
 end
 
