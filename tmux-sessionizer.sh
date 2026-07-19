@@ -36,7 +36,7 @@ sanity_check
 # e.g : EXTRA_SEARCH_PATHS=("$HOME/extra1:4" "$HOME/extra2")
 # note : Path can be suffixed with :number to limit or extend the depth of the search for the Path
 
-TS_EXTRA_SEARCH_PATHS=(~/personal/programming/ ~/personal/univ/ ~/personal/programming/probe/ ~/personal/programming/thirdparty/)
+TS_EXTRA_SEARCH_PATHS=(~/personal/programming/ ~/personal/univ/ ~/personal/univ/L1/ ~/personal/univ/L2/ ~/personal/univ/L3/ ~/personal/programming/probe/ ~/personal/programming/thirdparty/)
 if [[ ${#TS_EXTRA_SEARCH_PATHS[@]} -gt 0 ]]; then
     TS_SEARCH_PATHS+=("${TS_EXTRA_SEARCH_PATHS[@]}")
 fi
