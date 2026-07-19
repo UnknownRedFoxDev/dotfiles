@@ -6,19 +6,36 @@ function GrepByCwd()
 end
 
 function FindToDoByTimestamp()
-    local line = vim.fn.getline(".")
-    local timestamp = line:match("See TODO%((%d%d%d%d%-%d%d%-%d%d %d%d:%d%d:%d%d)%)")
-    local comment_char = vim.bo.commentstring:match("([^ ]+)") or "#"
-    if not timestamp then
-        vim.notify("No TODO timestamp found on line", vim.log.levels.WARN)
+    local curr_line = vim.api.nvim_get_current_line()
+    local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
+
+    local match = string.match(curr_line, huid_pattern)
+
+    if not match then
+        vim.notify("No task timestamp found on line", vim.log.levels.WARN)
         return
     end
 
-    require("telescope.builtin").live_grep({
-        cwd = vim.fn.expand('%:p:h'),
-        default_text = comment_char .. " TODO\\(" .. timestamp .. "\\)",
-        grep_open_files = true,
+    -- TASK(20260719-172727): bogus amongus
+    local path = vim.fs.find(match, {
+        path = vim.uv.cwd(),
+        limit = 1,
     })
+
+    if #path == 0 then
+        vim.notify("No task of HUID: " .. match .. " was found", vim.log.levels.WARN)
+        return
+    end
+
+    vim.cmd('botright 16split')
+    vim.cmd('e ' .. path[1] .. "/TASK.md")
+    vim.cmd('normal! gg')
+
+    -- require("telescope.builtin").live_grep({
+    --     cwd = vim.fn.expand('%:p:h'),
+    --     default_text = comment_char .. " TODO\\(" .. timestamp .. "\\)",
+    --     grep_open_files = true,
+    -- })
 end
 
 function AddTodo()
