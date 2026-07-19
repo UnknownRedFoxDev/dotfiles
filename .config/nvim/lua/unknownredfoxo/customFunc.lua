@@ -103,9 +103,31 @@ function RunCommand()
         return
     end
 
-    vim.cmd('botright 16split')
+    local buf_name = "*Run Output*"
+    local target_win = nil
+    local target_buf = nil
+
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        local name = vim.api.nvim_buf_get_name(buf)
+        if name:match(vim.pesc(buf_name) .. "$") then
+            target_win = win
+            target_buf = buf
+            break
+        end
+    end
+
+    if not target_win then
+        vim.cmd('botright 16split')
+    end
+
     vim.cmd('terminal ' .. cmd)
     -- vim.cmd('normal! gg') -- Go to the top of the buffer
     vim.cmd('normal! G')  -- Go to the bottom the buffer
+    local current_buf = vim.api.nvim_get_current_buf()
+    if target_buf then
+        vim.api.nvim_buf_delete(target_buf, { force = true })
+    end
+    vim.api.nvim_buf_set_name(current_buf, buf_name)
 end
 
