@@ -157,3 +157,64 @@ function DisplayBuffers()
   }))
 end
 
+function DisplayScratch()
+    local buf_name = "*Scratch*"
+    local target_win = nil
+    local target_buf = nil
+
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        local name = vim.api.nvim_buf_get_name(buf)
+        if name:match(vim.pesc(buf_name) .. "$") then
+            target_win = win
+            target_buf = buf
+            break
+        end
+    end
+
+
+    local new_buf = vim.api.nvim_create_buf(true, true)
+    vim.bo[new_buf].buftype = "nofile"
+    vim.bo[new_buf].filetype = "markdown"
+
+    local header = {
+        ";; This buffer is for notes you don't want to save. There is no Lisp evaluation here.",
+        ";; If you want to create a file, visit that file with `:e <filename>`",
+        ";; then enter the text in that file's own buffer.",
+        "",
+        "",
+    }
+
+
+    vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, header)
+    if not target_win then
+        -- vim.cmd('botright 16split')
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match(vim.pesc(buf_name) .. "$") then
+                target_buf = buf
+                break
+            end
+        end
+    end
+    if target_buf then
+        vim.api.nvim_buf_delete(target_buf, { force = true })
+    end
+    vim.api.nvim_buf_set_name(new_buf, buf_name)
+    vim.api.nvim_win_set_buf(0, new_buf)
+
+    vim.cmd('normal! G')  -- Go to the bottom the buffer
+end
+
+function DisplayBuffers()
+  local builtin = require('telescope.builtin')
+  local themes = require('telescope.themes')
+
+  -- Open the standard buffer list using a clean dropdown theme
+  builtin.buffers(themes.get_dropdown({
+    winblend = 10,
+    previewer = false, -- Turn off preview if you want it to look minimal like a mini-buffer
+    shorten_path = true,
+  }))
+end
+
