@@ -41,7 +41,6 @@ vim.api.nvim_create_autocmd("FileType", {
     end,
 })
 
-vim.api.nvim_create_user_command("AddTodo", AddTodo, {})
-vim.api.nvim_create_user_command("FindTODO", FindToDoByTimestamp, {})
+vim.api.nvim_create_user_command("FindTask", FindTaskByHUID, {})
 vim.api.nvim_create_user_command("AlignRegex", AlignSections, { range = true, nargs = "?" })
 vim.api.nvim_create_user_command("GrepByCwd", GrepByCwd, { range = true, nargs = "?" })

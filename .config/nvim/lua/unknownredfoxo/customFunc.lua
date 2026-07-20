@@ -1,11 +1,11 @@
 function GrepByCwd()
     local success, input = pcall(vim.fn.input, { prompt = "Grep > " })
     if success and input ~= "" then
-        require("telescope.builtin").grep_string({ search = input, cwd = vim.fn.expand('%:p:h') })
+        require("telescope.builtin").grep_string({ search = input, cwd = vim.fn.expand('%:h') })
     end
 end
 
-function FindToDoByTimestamp()
+function FindTaskByHUID()
     local curr_line = vim.api.nvim_get_current_line()
     local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
 
@@ -36,18 +36,6 @@ function FindToDoByTimestamp()
     --     default_text = comment_char .. " TODO\\(" .. timestamp .. "\\)",
     --     grep_open_files = true,
     -- })
-end
-
-function AddTodo()
-    local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-    local success, input = pcall(vim.fn.input, { prompt = "Enter TODO > " })
-    if success and input ~= "" then
-        local comment_char = vim.bo.commentstring:match("([^ ]+)") or "#"
-        local line = comment_char .. " TODO(" .. timestamp .. "): " .. input
-        local line_num = vim.api.nvim_buf_line_count(0) + 1
-        vim.api.nvim_buf_set_lines(0, line_num - 1, line_num - 1, false, { line })
-        vim.fn.setreg('"', comment_char .. " See TODO(" .. timestamp .. ")")
-    end
 end
 
 function AlignSections(opts)
@@ -97,7 +85,7 @@ function AlignSections(opts)
 end
 
 function RunCommand()
-    local cmd = vim.fn.input("Run command: ")
+    local cmd = vim.fn.input("Run command: ", "", "shellcmd")
 
     if cmd == "" then
         return

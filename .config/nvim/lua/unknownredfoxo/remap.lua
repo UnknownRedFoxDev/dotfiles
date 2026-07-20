@@ -11,7 +11,7 @@ vim.keymap.set("n", "<C-c>", vim.cmd.nohlsearch)
 
 local builtin = require("telescope.builtin")
 vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Telescope find files" })
-vim.keymap.set("n", "<C-p>", builtin.git_files, { desc = "Telescope fuzzy find git files" })
+vim.keymap.set("n", "<A-p>", builtin.git_files, { desc = "Telescope fuzzy find git files" })
 vim.keymap.set("n", "<leader>fs", GrepByCwd)
 
 -- vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, {})
@@ -28,8 +28,7 @@ vim.keymap.set("n", "<A-k>", ":m .-2<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-K>", "yyP", { noremap = true, silent = true })
 vim.keymap.set("n", "<C-J>", "yyp", { noremap = true, silent = true })
 
-vim.keymap.set("n", "<A-t>", AddTodo)
-vim.keymap.set("n", "<A-f>", FindToDoByTimestamp)
+vim.keymap.set("n", "<A-f>", FindTaskByHUID)
 
 vim.keymap.set("v", "<Leader>a", AlignSections, { silent = true })
 
