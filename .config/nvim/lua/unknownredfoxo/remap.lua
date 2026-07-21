@@ -35,3 +35,10 @@ vim.keymap.set("v", "<Leader>a", AlignSections, { silent = true })
 vim.keymap.set("n", "<A-x>", RunCommand)
 vim.keymap.set("n", "<A-b>", DisplayBuffers, {silent = true})
 vim.keymap.set("n", "<C-s>", DisplayScratch, {silent = true})
+
+vim.keymap.set('n', '<leader><A-x>', function()
+    local line = vim.api.nvim_get_current_line()
+    assert(load(line))()
+end, { desc = "Execute current line as Lua" })
+
+vim.keymap.set('n', '<A-J>', OpenFileUnderCursor, { silent = true, noremap = true })

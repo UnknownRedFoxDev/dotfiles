@@ -8,7 +8,6 @@ end
 function FindTaskByHUID()
     local curr_line = vim.api.nvim_get_current_line()
     local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
-
     local match = string.match(curr_line, huid_pattern)
 
     if not match then
@@ -84,11 +83,17 @@ function AlignSections(opts)
     vim.api.nvim_buf_set_lines(0, f_line - 1, l_line, false, new_lines)
 end
 
+
 function RunCommand()
-    local cmd = vim.fn.input("Run command: ", "", "shellcmd")
+    -- local cmd = vim.fn.input("Run command: ", "", "shellcmd")
+    local cmd = vim.fn.input("Run command: ")
 
     if cmd == "" then
         return
+    end
+
+    if cmd:match("^grep%s") and not cmd:match("%-%-color") then
+        cmd = cmd:gsub("^grep", "grep --color=always")
     end
 
     local buf_name = "*Run Output*"
@@ -131,6 +136,7 @@ function RunCommand()
         vim.api.nvim_buf_delete(target_buf, { force = true })
     end
     vim.api.nvim_buf_set_name(current_buf, buf_name)
+    -- vim.notify(string.format("%s", tostring(vim.bo[current_buf].buftype)), vim.log.levels.INFO)
 end
 
 function DisplayBuffers()
@@ -166,7 +172,7 @@ function DisplayScratch()
     vim.bo[new_buf].filetype = "markdown"
 
     local header = {
-        ";; This buffer is for notes you don't want to save. There is no Lisp evaluation here.",
+        ";; This buffer is for notes you don't want to save. You can evaluate your lua functions here too.",
         ";; If you want to create a file, visit that file with `:e <filename>`",
         ";; then enter the text in that file's own buffer.",
         "",
@@ -185,8 +191,7 @@ function DisplayScratch()
             end
         end
     end
-    if target_buf then
-        vim.api.nvim_buf_delete(target_buf, { force = true })
+    if target_buf then vim.api.nvim_buf_delete(target_buf, { force = true })
     end
     vim.api.nvim_buf_set_name(new_buf, buf_name)
     vim.api.nvim_win_set_buf(0, new_buf)
@@ -206,3 +211,27 @@ function DisplayBuffers()
   }))
 end
 
+function OpenFileUnderCursor()
+    local line = vim.api.nvim_get_current_line()
+
+    -- Pattern matches: path/file.ext:digits (handles HUID folder structures cleanly)
+    local path = ""
+    local line_num = ""
+    path, line_num = line:match("(.*):(%d+):")
+
+    if path == "" then
+        print("No valid file path and line number found on this line.")
+        return
+    end
+
+    -- Ensure the target window still exists, fallback to a smart split if it doesn't
+    if _G.last_editor_win and vim.api.nvim_win_is_valid(_G.last_editor_win) then
+        vim.api.nvim_set_current_win(_G.last_editor_win)
+    else
+        vim.cmd("wincmd k") -- Jump up one window as a sane fallback
+        _G.last_editor_win = vim.api.nvim_get_current_win()
+    end
+
+    -- Open the file and jump directly to the target line
+    vim.cmd(string.format("edit +%s %s", line_num, path))
+end
