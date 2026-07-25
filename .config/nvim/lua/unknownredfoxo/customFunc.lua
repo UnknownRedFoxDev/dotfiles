@@ -10,8 +10,7 @@ function FindTaskByHUID()
     local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
     local match = string.match(curr_line, huid_pattern)
 
-    if not match then
-        vim.notify("No task timestamp found on line", vim.log.levels.WARN)
+    if not match then vim.notify("No task timestamp found on line", vim.log.levels.WARN)
         return
     end
 
@@ -86,9 +85,16 @@ end
 
 function RunCommand()
     -- local cmd = vim.fn.input("Run command: ", "", "shellcmd")
-    local cmd = vim.fn.input("Run command: ")
+    local status, cmd = pcall(function()
+        return vim.fn.input("Run command: ")
+    end)
 
-    if cmd == "" then
+    if not status then
+        print("Command cancelled\n")
+        return
+    end
+
+    if cmd == "" or cmd == nil then
         return
     end
 
@@ -110,14 +116,16 @@ function RunCommand()
         end
     end
 
-    if not target_win then
-        vim.cmd('botright 16split')
-        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-            local name = vim.api.nvim_buf_get_name(buf)
-            if name:match(vim.pesc(buf_name) .. "$") then
-                target_buf = buf
-                break
-            end
+    if target_win then
+        vim.api.nvim_win_close(target_win, true)
+    end
+
+    vim.cmd('botright 16split')
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local name = vim.api.nvim_buf_get_name(buf)
+        if name:match(vim.pesc(buf_name) .. "$") then
+            target_buf = buf
+            break
         end
     end
 
@@ -131,6 +139,7 @@ function RunCommand()
     vim.cmd('terminal ' .. wrapped_cmd)
     -- vim.cmd('normal! gg') -- Go to the top of the buffer
     vim.cmd('normal! G')  -- Go to the bottom the buffer
+    vim.cmd('startinsert!')
     local current_buf = vim.api.nvim_get_current_buf()
     if target_buf then
         vim.api.nvim_buf_delete(target_buf, { force = true })

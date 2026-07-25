@@ -26,32 +26,38 @@ vim.api.nvim_create_user_command("Format", function(args)
     require("conform").format({ async = true, lsp_format = "fallback", range = range })
 end, { range = true })
 
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = "dired",
-    callback = function()
-        local full_path = vim.api.nvim_buf_get_name(0)
-        local last_dir = vim.fn.fnamemodify(full_path, ":t")
-
-        if last_dir == "" then
-            last_dir = "root"
-        end
-
-        local new_name = "dired: " .. last_dir
-        vim.api.nvim_buf_set_name(0, new_name)
-    end,
-})
+-- vim.api.nvim_create_autocmd("FileType", {
+--     pattern = "dired",
+--     callback = function()
+--         local full_path = vim.api.nvim_buf_get_name(0)
+--         local last_dir = vim.fn.fnamemodify(full_path, ":t")
+--
+--         if last_dir == "" then
+--             last_dir = "root"
+--         end
+--
+--         local new_name = "dired: " .. last_dir
+--         vim.api.nvim_buf_set_name(0, new_name)
+--     end,
+-- })
 
 _G.last_editor_win = vim.api.nvim_get_current_win()
 
 vim.api.nvim_create_autocmd("WinLeave", {
   callback = function()
     local buf = vim.api.nvim_win_get_buf(0)
-    -- Only update if we are leaving a normal file, NOT our log window
     if not vim.b[buf].is_run_output and vim.bo[buf].buftype == "" and not vim.bo[buf].buftype == "terminal" then
+    -- if not vim.b[buf].is_run_output and vim.bo[buf].buftype == "" then
       _G.last_editor_win = vim.api.nvim_get_current_win()
     end
   end,
 })
+
+-- vim.api.nvim_create_user_command("BuffType", function()
+--     local buf = vim.api.nvim_win_get_buf(0)
+--     vim.notify(vim.bo[buf].buftype, vim.log.levels.DEBUG)
+-- end,
+-- {})
 
 vim.api.nvim_create_user_command("FindTask", FindTaskByHUID, {})
 vim.api.nvim_create_user_command("AlignRegex", AlignSections, { range = true, nargs = "?" })
