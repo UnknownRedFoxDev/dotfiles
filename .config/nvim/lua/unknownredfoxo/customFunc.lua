@@ -139,7 +139,7 @@ function RunCommand()
     vim.cmd('terminal ' .. wrapped_cmd)
     -- vim.cmd('normal! gg') -- Go to the top of the buffer
     vim.cmd('normal! G')  -- Go to the bottom the buffer
-    vim.cmd('startinsert!')
+    -- vim.cmd('startinsert!')
     local current_buf = vim.api.nvim_get_current_buf()
     if target_buf then
         vim.api.nvim_buf_delete(target_buf, { force = true })

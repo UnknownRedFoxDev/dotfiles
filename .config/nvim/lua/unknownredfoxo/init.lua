@@ -11,6 +11,8 @@ vim.opt.smartcase      = true
 vim.opt.ignorecase     = true
 vim.o.autoread         = true
 
+vim.cmd("language en_US")
+
 require("unknownredfoxo.lazy")
 require("unknownredfoxo.customFunc")
 require("unknownredfoxo.autocmd")

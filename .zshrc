@@ -18,3 +18,4 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/opt/neovim/bin:$PATH"
 export GREP_COLORS="fn=00;31:ln=00;33:mt=00;29"
 alias grep="grep --color=always"
+
