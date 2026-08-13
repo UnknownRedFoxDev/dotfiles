@@ -40,16 +40,16 @@ return {
             signature = { enabled = true },
         },
     },
-    { -- optional cmp completion source for require statements and module annotations
-        "hrsh7th/nvim-cmp",
-        opts = function(_, opts)
-            opts.sources = opts.sources or {}
-            table.insert(opts.sources, {
-                name = "lazydev",
-                group_index = 0, -- set group index to 0 to skip loading LuaLS completions
-            })
-        end,
-    },
+    -- { -- optional cmp completion source for require statements and module annotations
+    --     "hrsh7th/nvim-cmp",
+    --     opts = function(_, opts)
+    --         opts.sources = opts.sources or {}
+    --         table.insert(opts.sources, {
+    --             name = "lazydev",
+    --             group_index = 0, -- set group index to 0 to skip loading LuaLS completions
+    --         })
+    --     end,
+    -- },
     {
         'neovim/nvim-lspconfig',
         dependencies = {
@@ -67,21 +67,38 @@ return {
             },
             { 'mason-org/mason-lspconfig.nvim' },
             { 'WhoIsSethDaniel/mason-tool-installer.nvim' },
-            {
-                'j-hui/fidget.nvim',
-                opts = {}
-            },
+            -- { 'j-hui/fidget.nvim', },
             { 'saghen/blink.cmp' },
         },
         config = function()
-            -- Paste your LspAttach autocmd and server configurations here
-            -- local capabilities = require('blink.cmp').get_lsp_capabilities()
+            vim.diagnostic.config({
+                virtual_text = false,
+                signs = false,
+                underline = false,
+                update_in_insert = false,
+                severity_sort = false,
+            })
+
+            vim.lsp.handlers["textDocument/publishDiagnostics"] = function() end
 
             local servers = {
-                lua_ls = { settings = { Lua = { completion = { callSnippet = 'Replace' } } } },
-                clangd = { cmd = { "clangd", "--background-index", "--clang-tidy" } }
+                lua_ls = {
+                    settings = {
+                        Lua = {
+                            completion = { callSnippet = 'Replace' },
+                            diagnostics = { enable = false },
+                        }
+                    }
+                },
+                clangd = {
+                    cmd = {
+                        "clangd",
+                        "--background-index",
+                        "--header-insertion=never",
+                        "--clang-tidy=false",
+                    }
+                }
             }
-
             -- Ensure tools are installed
             local ensure_installed = vim.tbl_keys(servers)
             vim.list_extend(ensure_installed, { 'stylua' })

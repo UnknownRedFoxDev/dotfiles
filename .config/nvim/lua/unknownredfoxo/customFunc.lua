@@ -37,21 +37,26 @@ function FindTaskByHUID()
 end
 
 function AlignSections(opts)
-    local f_line = opts.line1
-    local l_line = opts.line2
+    local sep = ""
 
-    local sep = opts.args
+    if opts ~= nil then
+        sep = opts.args
+    end
+
     if sep == "" or sep == nil then
         sep = vim.fn.input("Align regexp: ")
     end
+
+    local f_line = opts.line1
+    local l_line = opts.line2
 
     -- Exit if user cancels input
     if sep == "" then
         return
     end
 
-    local extra = 1
-    local lines = vim.api.nvim_buf_get_lines(0, f_line - 1, l_line, false)
+    local extra  = 1
+    local lines  = vim.api.nvim_buf_get_lines(0, f_line - 1, l_line, false)
     local maxpos = 0
 
     -- Escape special Lua pattern characters in the separator
