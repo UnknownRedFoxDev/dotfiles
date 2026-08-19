@@ -10,7 +10,8 @@ function FindTaskByHUID()
     local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
     local match = string.match(curr_line, huid_pattern)
 
-    if not match then vim.notify("No task timestamp found on line", vim.log.levels.WARN)
+    if not match then
+        vim.notify("No task timestamp found on line", vim.log.levels.WARN)
         return
     end
 
@@ -248,4 +249,51 @@ function OpenFileUnderCursor()
 
     -- Open the file and jump directly to the target line
     vim.cmd(string.format("edit +%s %s", line_num, path))
+end
+
+
+function newTask()
+    local status, title = pcall(function()
+        return vim.fn.input("task title: ")
+    end)
+
+    if not status or title == "" or title == nil then
+        return
+    end
+
+    local isTasksDirPresent = vim.system({ "tatr", "ls" }):wait()
+    local cancelCommand = false
+
+    if isTasksDirPresent.code == 1 then
+        vim.notify("Tasks is not present", vim.log.levels.INFO)
+    --     vim.ui.input({
+    --         prompt = "No tasks/ directory was found. Create one? Y/n: ",
+    --     }, function(choice)
+    --         if choice == "" or choice == "y" or choice == "Y" then
+    --             vim.system({ "tatr", "init", "y" }):wait()
+    --         else
+    --             cancelCommand = true
+    --         end
+    --     end)
+    end
+
+    local result = ""
+    if cancelCommand == false then
+        -- result = vim.api.nvim_exec2("!tatr new --no-editor ".. title, {output = true})
+        result = vim.system({ "tatr", "new", "--no-editor", title }):wait()
+    end
+
+    if result == nil or result == "" then
+        return;
+    end
+
+    local match = result.stderr:match(": (.-)$")
+
+    if match == "" then
+        vim.notify("Failed to find match", vim.log.levels.ERROR)
+        return;
+    end
+
+    vim.cmd('botright 16split')
+    vim.cmd(string.format("edit %s", match))
 end
