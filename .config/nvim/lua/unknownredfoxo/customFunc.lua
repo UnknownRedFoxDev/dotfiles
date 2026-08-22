@@ -96,7 +96,6 @@ function RunCommand()
     end)
 
     if not status then
-        print("Command cancelled\n")
         return
     end
 
@@ -147,9 +146,20 @@ function RunCommand()
         vim.api.nvim_win_set_buf(0, current_buf)
         vim.bo[current_buf].buftype = 'nofile'
 
+        local start_time = vim.uv.hrtime()
         local pid = vim.fn.jobstart(wrapped_cmd, {
             term = true,
             on_exit = function(_, exit_code, _)
+                local elapsed_ns = vim.uv.hrtime() - start_time
+                local elapsed_ms = elapsed_ns / 1e6
+
+                local duration_str
+                if elapsed_ms >= 1000 then
+                    duration_str = string.format("%.2fs", elapsed_ms / 1000)
+                else
+                    duration_str = string.format("%dms", math.floor(elapsed_ms))
+                end
+
                 vim.schedule(function()
                     if vim.api.nvim_buf_is_valid(current_buf) then
                         vim.bo[current_buf].modifiable = true;
@@ -162,7 +172,7 @@ function RunCommand()
                             status_text = "exited abnormally"
                             full_status = status_text .. " with code " .. tostring(exit_code)
                         end
-                        local full_msg = prefix .. full_status .. string.format(" at %s", os.date("%Y-%m-%d %H:%M:%S"))
+                        local full_msg = prefix .. full_status .. string.format(" at %s", os.date("%Y-%m-%d %H:%M:%S")) .. ", duration: " .. duration_str
 
                         local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
                         local last_content_line = #lines
