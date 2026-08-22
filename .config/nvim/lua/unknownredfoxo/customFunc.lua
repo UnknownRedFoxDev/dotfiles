@@ -130,7 +130,7 @@ function RunCommand()
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
         local name = vim.api.nvim_buf_get_name(buf)
         if name:match(vim.pesc(buf_name) .. "$") then
-            target_buf = buf
+            vim.api.nvim_buf_delete(buf, { force = true })
             break
         end
     end
@@ -138,19 +138,50 @@ function RunCommand()
     local shell = vim.o.shell
     local cwd = vim.uv.cwd()
     -- \\033[0m
-    local header = string.format("printf '-*- mode: command; default-directory: \"%%s\" -*-\\nCommand started at %%s\\n\\n%%s\\n'; %s", cmd)
+    local header = string.format("printf '-*- mode: command; default-directory: \"%%s\" -*-\\nProcess started at %%s\\n\\n%%s\\n'; %s", cmd)
 
     local wrapped_cmd = string.format("%s -c %s", shell, vim.fn.shellescape(string.format(header, cwd, os.date("%Y-%m-%d %H:%M:%S"), cmd)))
 
-    vim.cmd('terminal ' .. wrapped_cmd)
-    -- vim.cmd('normal! gg') -- Go to the top of the buffer
-    vim.cmd('normal! G')  -- Go to the bottom the buffer
-    -- vim.cmd('startinsert!')
-    local current_buf = vim.api.nvim_get_current_buf()
-    if target_buf then
-        vim.api.nvim_buf_delete(target_buf, { force = true })
+    local current_buf = vim.api.nvim_create_buf(true, true)
+    if current_buf then
+        vim.api.nvim_win_set_buf(0, current_buf)
+        vim.bo[current_buf].buftype = 'nofile'
+
+        local pid = vim.fn.jobstart(wrapped_cmd, {
+            term = true,
+            on_exit = function(_, exit_code, _)
+                vim.schedule(function()
+                    if vim.api.nvim_buf_is_valid(current_buf) then
+                        local status_string = "finished"
+                        if (exit_code ~= 0) then
+                            status_string = string.format("exited abnormally with code %s", exit_code)
+                        end
+                        local status_line = string.format("Process %s at %s", status_string, os.date("%Y-%m-%d %H:%M:%S"))
+                        vim.bo[current_buf].modifiable = true;
+                        local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+
+                        local last_content_line = #lines
+                        for i = #lines, 1, -1 do
+                            if lines[i]:match("%S") then
+                                last_content_line = i
+                                break
+                            end
+                        end
+                        vim.api.nvim_buf_set_lines(current_buf, last_content_line, -1, false, {
+                                "",
+                                status_line
+                            })
+                        vim.bo[current_buf].modifiable = false;
+                    end
+                end)
+            end,
+        })
+        vim.api.nvim_buf_set_name(current_buf, buf_name)
+        vim.cmd('normal! G')
     end
-    vim.api.nvim_buf_set_name(current_buf, buf_name)
+
+    if target_buf then
+    end
     -- vim.notify(string.format("%s", tostring(vim.bo[current_buf].buftype)), vim.log.levels.INFO)
 end
 
