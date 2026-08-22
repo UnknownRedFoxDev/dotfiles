@@ -152,14 +152,19 @@ function RunCommand()
             on_exit = function(_, exit_code, _)
                 vim.schedule(function()
                     if vim.api.nvim_buf_is_valid(current_buf) then
-                        local status_string = "finished"
-                        if (exit_code ~= 0) then
-                            status_string = string.format("exited abnormally with code %s", exit_code)
-                        end
-                        local status_line = string.format("Process %s at %s", status_string, os.date("%Y-%m-%d %H:%M:%S"))
                         vim.bo[current_buf].modifiable = true;
-                        local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
 
+                        local prefix = "Process "
+                        local status_text = "finished"
+                        local full_status = status_text
+
+                        if (exit_code ~= 0) then
+                            status_text = "exited abnormally"
+                            full_status = status_text .. " with code " .. tostring(exit_code)
+                        end
+                        local full_msg = prefix .. full_status .. string.format(" at %s", os.date("%Y-%m-%d %H:%M:%S"))
+
+                        local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
                         local last_content_line = #lines
                         for i = #lines, 1, -1 do
                             if lines[i]:match("%S") then
@@ -167,10 +172,29 @@ function RunCommand()
                                 break
                             end
                         end
-                        vim.api.nvim_buf_set_lines(current_buf, last_content_line, -1, false, {
-                                "",
-                                status_line
-                            })
+
+                        vim.api.nvim_buf_set_lines(current_buf, last_content_line, -1, false, { "", full_msg })
+                        local prefix_start = 0
+                        local prefix_end   = prefix_start + string.len(prefix)
+
+                        local status_start = prefix_end
+                        local status_end   = status_start + string.len(status_text)
+
+                        local exit_code_start, exit_code_end
+
+                        if exit_code ~= 0 then
+                            exit_code_start = status_end + string.len(" with code ")
+                            exit_code_end   = exit_code_start + string.len(exit_code)
+                        end
+
+                        local line_idx = vim.api.nvim_buf_line_count(current_buf) - 1
+                        local ns_id     = vim.api.nvim_create_namespace("run_cmd_status")
+                        local symbol_hl = (exit_code == 0) and "DiagnosticOk" or "DiagnosticError"
+                        vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, status_start, status_end)
+                        if exit_code ~= 0 then
+                            vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, exit_code_start, exit_code_end)
+                        end
+
                         vim.bo[current_buf].modifiable = false;
                     end
                 end)
