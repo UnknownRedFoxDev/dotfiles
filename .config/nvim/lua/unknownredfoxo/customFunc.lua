@@ -153,70 +153,67 @@ function RunCommand()
                 local elapsed_ns = vim.uv.hrtime() - start_time
                 local elapsed_ms = elapsed_ns / 1e6
 
-                local duration_str
-                if elapsed_ms >= 1000 then
-                    duration_str = string.format("%.2fs", elapsed_ms / 1000)
-                else
-                    duration_str = string.format("%dms", math.floor(elapsed_ms))
-                end
+                local duration_str = (elapsed_ms >= 1000)
+                and string.format("%.2fs", elapsed_ms / 1000)
+                or string.format("%dms", math.floor(elapsed_ms))
 
-                vim.schedule(function()
-                    if vim.api.nvim_buf_is_valid(current_buf) then
-                        vim.bo[current_buf].modifiable = true;
+                vim.defer_fn(function()
+                    if not vim.api.nvim_buf_is_valid(current_buf) then return end
 
-                        local prefix = "Process "
-                        local status_text = "finished"
-                        local full_status = status_text
+                    vim.bo[current_buf].modifiable = true
 
-                        if (exit_code ~= 0) then
-                            status_text = "exited abnormally"
-                            full_status = status_text .. " with code " .. tostring(exit_code)
+                    local prefix = "Process "
+                    local status_text = (exit_code == 0) and "finished" or "exited abnormally"
+                    local full_status = (exit_code == 0) and status_text or (status_text .. " with code " .. tostring(exit_code))
+                    local full_msg = prefix .. full_status .. string.format(" at %s", os.date("%Y-%m-%d %H:%M:%S")) .. ", duration: " .. duration_str
+
+                    -- Reverse search to find the last empty line
+                    local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+                    local last_content_line = #lines
+                    for i = #lines, 1, -1 do
+                        if lines[i]:match("%S") then
+                            last_content_line = i
+                            break
                         end
-                        local full_msg = prefix .. full_status .. string.format(" at %s", os.date("%Y-%m-%d %H:%M:%S")) .. ", duration: " .. duration_str
-
-                        local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
-                        local last_content_line = #lines
-                        for i = #lines, 1, -1 do
-                            if lines[i]:match("%S") then
-                                last_content_line = i
-                                break
-                            end
-                        end
-
-                        vim.api.nvim_buf_set_lines(current_buf, last_content_line, -1, false, { "", full_msg })
-                        local prefix_start = 0
-                        local prefix_end   = prefix_start + string.len(prefix)
-
-                        local status_start = prefix_end
-                        local status_end   = status_start + string.len(status_text)
-
-                        local exit_code_start, exit_code_end
-
-                        if exit_code ~= 0 then
-                            exit_code_start = status_end + string.len(" with code ")
-                            exit_code_end   = exit_code_start + string.len(exit_code)
-                        end
-
-                        local line_idx = vim.api.nvim_buf_line_count(current_buf) - 1
-                        local ns_id     = vim.api.nvim_create_namespace("run_cmd_status")
-                        local symbol_hl = (exit_code == 0) and "DiagnosticOk" or "DiagnosticError"
-                        vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, status_start, status_end)
-                        if exit_code ~= 0 then
-                            vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, exit_code_start, exit_code_end)
-                        end
-
-                        vim.bo[current_buf].modifiable = false;
                     end
-                end)
+
+                    -- Replace the "[Process Exit <exit_code>]" by a custom message
+                    vim.api.nvim_buf_set_lines(current_buf, last_content_line, -1, false, { "", full_msg })
+
+                    -- Highlights
+                    local ns_id = vim.api.nvim_create_namespace("run_cmd_status")
+                    local symbol_hl = (exit_code == 0) and "DiagnosticOk" or "DiagnosticError"
+                    local line_idx = vim.api.nvim_buf_line_count(current_buf) - 1
+                    local status_start = string.len(prefix)
+                    local status_end = status_start + string.len(status_text)
+
+                    -- "finshed" / "exited abnormally" highlighting
+                    vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, status_start, status_end)
+
+                    -- <exit_code> highlighting
+                    if exit_code ~= 0 then
+                        local exit_code_start = status_end + string.len(" with code ")
+                        local exit_code_end = exit_code_start + string.len(tostring(exit_code))
+                        vim.api.nvim_buf_add_highlight(current_buf, ns_id, symbol_hl, line_idx, exit_code_start, exit_code_end)
+                    end
+
+                    vim.bo[current_buf].modifiable = false
+
+                    -- Force scroll down to see the custom message, othrwise it would get chopped off by the auto-scroll
+                    for _, win in ipairs(vim.fn.win_findbuf(current_buf)) do
+                        if vim.api.nvim_win_is_valid(win) then
+                            vim.api.nvim_win_call(win, function()
+                                local total_lines = vim.api.nvim_buf_line_count(current_buf)
+                                vim.api.nvim_win_set_cursor(win, { total_lines, 0 })
+                                vim.cmd("normal! zb")
+                            end)
+                        end
+                    end
+                end, 20)
             end,
         })
         vim.api.nvim_buf_set_name(current_buf, buf_name)
-        vim.cmd('normal! G')
     end
-
-    if target_buf then
-    end
-    -- vim.notify(string.format("%s", tostring(vim.bo[current_buf].buftype)), vim.log.levels.INFO)
 end
 
 function DisplayBuffers()
