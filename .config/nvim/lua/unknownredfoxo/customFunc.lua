@@ -9,7 +9,6 @@ function FindTaskByHUID()
     local curr_line = vim.api.nvim_get_current_line()
     local huid_pattern = "%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d"
     local match = string.match(curr_line, huid_pattern)
-
     if not match then
         vim.notify("No task timestamp found on line", vim.log.levels.WARN)
         return
@@ -95,11 +94,7 @@ function RunCommand()
         return vim.fn.input("Run command: ")
     end)
 
-    if not status then
-        return
-    end
-
-    if cmd == "" or cmd == nil then
+    if not status or cmd == "" or cmd == nil then
         return
     end
 
@@ -147,15 +142,15 @@ function RunCommand()
         vim.bo[current_buf].buftype = 'nofile'
 
         local start_time = vim.uv.hrtime()
-        local pid = vim.fn.jobstart(wrapped_cmd, {
+        vim.fn.jobstart(wrapped_cmd, {
             term = true,
             on_exit = function(_, exit_code, _)
                 local elapsed_ns = vim.uv.hrtime() - start_time
                 local elapsed_ms = elapsed_ns / 1e6
 
                 local duration_str = (elapsed_ms >= 1000)
-                and string.format("%.2fs", elapsed_ms / 1000)
-                or string.format("%dms", math.floor(elapsed_ms))
+                    and string.format("%.2fs", elapsed_ms / 1000)
+                    or string.format("%dms", math.floor(elapsed_ms))
 
                 vim.defer_fn(function()
                     if not vim.api.nvim_buf_is_valid(current_buf) then return end
@@ -212,7 +207,9 @@ function RunCommand()
                 end, 1)
             end,
         })
+
         vim.api.nvim_buf_set_name(current_buf, buf_name)
+        vim.cmd("normal! G")
     end
 end
 
