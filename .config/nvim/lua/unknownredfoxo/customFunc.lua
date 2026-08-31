@@ -209,7 +209,7 @@ function RunCommand()
                             end)
                         end
                     end
-                end, 20)
+                end, 1)
             end,
         })
         vim.api.nvim_buf_set_name(current_buf, buf_name)
@@ -294,7 +294,12 @@ function OpenFileUnderCursor()
     -- Pattern matches: path/file.ext:digits (handles HUID folder structures cleanly)
     local path = ""
     local line_num = ""
-    path, line_num = line:match("(.*):(%d+):")
+    local col_num = ""
+    path, line_num, col_num = line:match("(.-):(%d+):(%d+):")
+
+    if path == "" or path == nil then
+        path, line_num = line:match("(.-):(%d+):")
+    end
 
     if path == "" then
         print("No valid file path and line number found on this line.")
@@ -309,8 +314,16 @@ function OpenFileUnderCursor()
         _G.last_editor_win = vim.api.nvim_get_current_win()
     end
 
-    -- Open the file and jump directly to the target line
-    vim.cmd(string.format("edit +%s %s", line_num, path))
+    local target = ""
+    if path ~= "" then
+        target = vim.fn.fnameescape(path)
+    end
+
+    if col_num == nil then
+        vim.cmd(string.format("edit +call\\ cursor(%d,1) %s", line_num, target))
+    else
+        vim.cmd(string.format("edit +call\\ cursor(%d,%s) %s", line_num, col_num, target))
+    end
 end
 
 
