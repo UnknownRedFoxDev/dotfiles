@@ -87,22 +87,7 @@ function AlignSections(opts)
     vim.api.nvim_buf_set_lines(0, f_line - 1, l_line, false, new_lines)
 end
 
-
-function RunCommand()
-    -- local cmd = vim.fn.input("Run command: ", "", "shellcmd")
-    local status, cmd = pcall(function()
-        return vim.fn.input("Run command: ")
-    end)
-
-    if not status or cmd == "" or cmd == nil then
-        return
-    end
-
-    if cmd:match("^grep%s") and not cmd:match("%-%-color") then
-        cmd = cmd:gsub("^grep", "grep --color=always")
-    end
-
-    local buf_name = "*Run Output*"
+local function CreateCustomBuffer(buf_name, delete_prev_win_instance, delete_prev_buf_instance)
     local target_win = nil
     local target_buf = nil
 
@@ -116,26 +101,26 @@ function RunCommand()
         end
     end
 
-    if target_win then
-        vim.api.nvim_win_close(target_win, true)
-    end
-
-    vim.cmd('botright 16split')
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        local name = vim.api.nvim_buf_get_name(buf)
-        if name:match(vim.pesc(buf_name) .. "$") then
-            vim.api.nvim_buf_delete(buf, { force = true })
-            break
+    if delete_prev_win_instance == true then
+        if target_win then
+            vim.api.nvim_win_close(target_win, true)
         end
     end
 
-    local shell = vim.o.shell
-    local cwd = vim.uv.cwd()
-    -- \\033[0m
-    local header = string.format("printf '-*- mode: command; default-directory: \"%%s\" -*-\\nProcess started at %%s\\n\\n%%s\\n'; %s", cmd)
+    vim.cmd('botright 16split')
+    if delete_prev_buf_instance == true then
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match(vim.pesc(buf_name) .. "$") then
+                vim.api.nvim_buf_delete(buf, { force = true })
+                break
+            end
+        end
+    end
+    return target_win, target_buf
+end
 
-    local wrapped_cmd = string.format("%s -c %s", shell, vim.fn.shellescape(string.format(header, cwd, os.date("%Y-%m-%d %H:%M:%S"), cmd)))
-
+function RunCommandBuffer(wrapped_cmd, buf_name)
     local current_buf = vim.api.nvim_create_buf(true, true)
     if current_buf then
         vim.api.nvim_win_set_buf(0, current_buf)
@@ -200,7 +185,6 @@ function RunCommand()
                             vim.api.nvim_win_call(win, function()
                                 local total_lines = vim.api.nvim_buf_line_count(current_buf)
                                 vim.api.nvim_win_set_cursor(win, { total_lines, 0 })
-                                vim.cmd("normal! zb")
                             end)
                         end
                     end
@@ -210,6 +194,47 @@ function RunCommand()
 
         vim.api.nvim_buf_set_name(current_buf, buf_name)
         vim.cmd("normal! G")
+    end
+end
+
+local function CreateCommandBuffer(cmd, buf_name)
+    local target_win, target_buf = CreateCustomBuffer(buf_name, true, true)
+
+    local shell = vim.o.shell
+    local cwd = vim.uv.cwd()
+    local header = string.format("printf '-*- mode: command; default-directory: \"%%s\" -*-\\nProcess started at %%s\\n\\n%%s\\n'; %s", cmd)
+
+    local wrapped_cmd = string.format("%s -c %s", shell, vim.fn.shellescape(string.format(header, cwd, os.date("%Y-%m-%d %H:%M:%S"), cmd)))
+    return wrapped_cmd
+end
+
+function RunCommand()
+    -- local cmd = vim.fn.input("Run command: ", "", "shellcmd")
+    local status, cmd = pcall(function()
+        return vim.fn.input("Run command: ")
+    end)
+
+    if not status or cmd == "" or cmd == nil then
+        return
+    end
+
+    if cmd:match("^grep%s") and not cmd:match("%-%-color") then
+        cmd = cmd:gsub("^grep", "grep --color=always")
+    end
+
+    _G.last_command_ran = cmd
+    local buf_name = "*Run Output*"
+    local wrapped_cmd = CreateCommandBuffer(cmd, buf_name)
+
+    RunCommandBuffer(wrapped_cmd, buf_name)
+end
+
+function RunLastCommandRan()
+    if _G.last_command_ran ~= nil then
+        local buf_name = "*Run Output*"
+        local wrapped_cmd = CreateCommandBuffer(_G.last_command_ran, buf_name)
+
+        RunCommandBuffer(wrapped_cmd, buf_name)
     end
 end
 
@@ -312,14 +337,16 @@ function OpenFileUnderCursor()
     end
 
     local target = ""
-    if path ~= "" then
+    if path ~= "" and path ~= nil then
         target = vim.fn.fnameescape(path)
     end
 
-    if col_num == nil then
-        vim.cmd(string.format("edit +call\\ cursor(%d,1) %s", line_num, target))
-    else
-        vim.cmd(string.format("edit +call\\ cursor(%d,%s) %s", line_num, col_num, target))
+    if target ~= nil and target ~= "" then
+        if col_num == nil then
+            vim.cmd(string.format("edit +call\\ cursor(%d,1) %s", line_num, target))
+        else
+            vim.cmd(string.format("edit +call\\ cursor(%d,%s) %s", line_num, col_num, target))
+        end
     end
 end
 
@@ -369,3 +396,5 @@ function newTask()
     vim.cmd('botright 16split')
     vim.cmd(string.format("edit %s", match))
 end
+
+

@@ -1,6 +1,6 @@
 # allow <C-X> to directly the last ran command
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 100
-- TAGS: 
+- TAGS:
 
