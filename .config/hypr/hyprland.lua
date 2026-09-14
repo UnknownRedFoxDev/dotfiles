@@ -227,6 +227,7 @@ hl.config({
         repeat_delay = 250,
 
         follow_mouse = 1,
+        kb_options = "ctrl:swapcaps",
 
         sensitivity = 0, -- -1.0 - 1.0, 0 means no modification.
 
