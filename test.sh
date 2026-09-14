@@ -38,7 +38,7 @@ echo -e "Destination folder  :\t$destFolder\n"
 
 # ------------- PARENTs EXISTENCE TEST -------------
 
-find $DEV_ENV -mindepth 1 -maxdepth 1 -name '.git' -prune -o -print | while read -r parentFolder; do
+find $DEV_ENV -mindepth 1 -maxdepth 1 -not -name '.git' -not -name 'tasks' | while read -r parentFolder; do
     if [[ -d $parentFolder ]]; then
         parentName=$(basename $parentFolder)
         destParentPath="$destFolder/$parentName"
@@ -54,33 +54,31 @@ done
 
 # For example: folder="$DEV_ENV/.../nvim" with $DEV_ENV being most of the time: `pwd`
 # So: folder="/home/$USER/dev/env/.config/nvim
-find $DEV_ENV -mindepth 2 -type d | while read -r folder; do
+find $DEV_ENV -mindepth 2 -type d -not -name '.git' -not -name 'tasks' | while read -r folder; do
     # e.g.: nvim
     folder_name=$(basename $folder)
 
     # Path without $DEV_ENV
     # e.g.: .config/nvim
     relative_path=$(echo $folder | sed "s|^$DEV_ENV/||")
-    if [[ "$relative_path" != *".git"* ]]; then
 
-        # Name of the root folder holding the folder "folder"
-        # e.g.: .config
-        rootFolder=$(echo $relative_path | sed "s|/$folder_name||")
+    # Name of the root folder holding the folder "folder"
+    # e.g.: .config
+    rootFolder=$(echo $relative_path | sed "s|/$folder_name||")
 
-        # e.g.: /home/$USER/.config/nvim
-        homePath="$destFolder/$relative_path"
+    # e.g.: /home/$USER/.config/nvim
+    homePath="$destFolder/$relative_path"
 
-        # e.g.: /home/$USER/.config
-        homeRootPath="$destFolder/$rootFolder"
-        # echo -e "${RED}Removing: rm -rf $destFolder/$relative_path${WHITE}"
-        if [[ -d $homePath ]]; then
-            rm -rf $homePath
-        fi
-
-        # echo -e "${GREEN}Copying env: $folder_name ---> $homeRootPath${WHITE}"
-        mkdir -p "$homeRootPath" &>/dev/null
-        cp -rf "$folder" "$homeRootPath"
+    # e.g.: /home/$USER/.config
+    homeRootPath="$destFolder/$rootFolder"
+    # echo -e "${RED}Removing: rm -rf $destFolder/$relative_path${WHITE}"
+    if [[ -d $homePath ]]; then
+        rm -rf $homePath
     fi
+
+    # echo -e "${GREEN}Copying env: $folder_name ---> $homeRootPath${WHITE}"
+    mkdir -p "$homeRootPath" &>/dev/null
+    cp -rf "$folder" "$homeRootPath"
 done
 
 # ----------- FILES COVERAGE -----------
