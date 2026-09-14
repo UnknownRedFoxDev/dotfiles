@@ -44,3 +44,5 @@ end, { desc = "Execute current line as Lua" })
 
 vim.keymap.set('n', '<A-J>', OpenFileUnderCursor, { silent = true, noremap = true })
 vim.keymap.set('n', '<A-t>', newTask)
+vim.keymap.set('n', '<A-T>', CreateTaskFromComment)
+

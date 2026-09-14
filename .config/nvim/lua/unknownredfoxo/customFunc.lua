@@ -311,8 +311,6 @@ function DisplayBuffers()
 end
 
 function OpenFileUnderCursor()
-    local line = vim.api.nvim_get_current_line()
-
     -- Pattern matches: path/file.ext:digits (handles HUID folder structures cleanly)
     local path = ""
     local line_num = ""
@@ -350,18 +348,8 @@ function OpenFileUnderCursor()
     end
 end
 
-
-function newTask()
-    local status, title = pcall(function()
-        return vim.fn.input("task title: ")
-    end)
-
-    if not status or title == "" or title == nil then
-        return
-    end
-
+local function isTasksDirPresent()
     local isTasksDirPresent = vim.system({ "tatr", "ls" }):wait()
-    local cancelCommand = false
 
     if isTasksDirPresent.code == 1 then
         vim.notify("Tasks is not present", vim.log.levels.INFO)
@@ -374,13 +362,15 @@ function newTask()
     --             cancelCommand = true
     --         end
     --     end)
+        return false
     end
+    return true
+end
 
+function CreateAndOpenTask(title)
     local result = ""
-    if cancelCommand == false then
-        -- result = vim.api.nvim_exec2("!tatr new --no-editor ".. title, {output = true})
-        result = vim.system({ "tatr", "new", "--no-editor", title }):wait()
-    end
+    -- result = vim.api.nvim_exec2("!tatr new --no-editor ".. title, {output = true})
+    result = vim.system({ "tatr", "new", "--no-editor", title }):wait()
 
     if result == nil or result == "" then
         return;
@@ -397,4 +387,31 @@ function newTask()
     vim.cmd(string.format("edit %s", match))
 end
 
+function newTask()
+    local status, title = pcall(function()
+        return vim.fn.input("task title: ")
+    end)
 
+    if not status or title == "" or title == nil then
+        return
+    end
+
+    if isTasksDirPresent() then
+        CreateAndOpenTask(title)
+    end
+end
+
+-- TASK(): aaaaaaaaaaaaaaaaaa
+function CreateTaskFromComment()
+    local curr_line = vim.api.nvim_get_current_line()
+    local huid_pattern = "%w+%(%): (%w+)"
+    local match = string.match(curr_line, huid_pattern)
+    if not match then
+        vim.notify("No task match found on line", vim.log.levels.WARN)
+        return
+    end
+
+    if isTasksDirPresent() then
+        CreateAndOpenTask(match)
+    end
+end
