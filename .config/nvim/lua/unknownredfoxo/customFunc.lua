@@ -312,6 +312,7 @@ end
 
 function OpenFileUnderCursor()
     -- Pattern matches: path/file.ext:digits (handles HUID folder structures cleanly)
+    local line = vim.api.nvim_get_current_line()
     local path = ""
     local line_num = ""
     local col_num = ""
