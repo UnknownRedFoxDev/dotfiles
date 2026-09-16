@@ -415,3 +415,25 @@ function CreateTaskFromComment()
         CreateAndOpenTask(match)
     end
 end
+
+function copyHuidToClipboard()
+    local huid_pattern = "/?(%d+%-%d+)/?"
+    -- local path = "/home/user/19970101-000000/TASK.md"
+    -- local path = "/home/unknownredfoxo/dev/env/tasks/20260824-235359"
+    local path = vim.fn.expand('%:p:h')
+    local match = string.match(path, huid_pattern)
+    -- local match_str = "(none)"
+    -- if match ~= nil then
+    --     match_str = match
+    -- end
+    --
+    -- local msg = "Found huid: \""
+    --             .. match_str
+    --             .. "\" for path: \""
+    --             .. path .. "\""
+    -- vim.notify(msg, vim.log.levels.ERROR)
+
+    if match ~= nil then
+        vim.fn.setreg("+", match);
+    end
+end
