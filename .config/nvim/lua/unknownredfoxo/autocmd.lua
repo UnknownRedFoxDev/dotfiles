@@ -61,5 +61,7 @@ vim.api.nvim_create_autocmd("WinLeave", {
 
 vim.api.nvim_create_user_command("FindTask", FindTaskByHUID, {})
 vim.api.nvim_create_user_command("AlignRegex", AlignSections, { range = true, nargs = "?" })
+-- vim.api.nvim_create_user_command("SwitchBuffers", prompt_buffer_name, { range = true, nargs = "?" })
+vim.api.nvim_create_user_command("SwitchBuffers", switch_to_buffer, { range = true, nargs = "?" })
 vim.api.nvim_create_user_command("GrepByCwd", GrepByCwd, { range = true, nargs = "?" })
 vim.api.nvim_create_user_command("CopyHuidToClipboard", copyHuidToClipboard, {})

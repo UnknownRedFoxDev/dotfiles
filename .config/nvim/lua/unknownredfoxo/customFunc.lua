@@ -438,3 +438,129 @@ function copyHuidToClipboard()
         vim.fn.setreg("+", match);
     end
 end
+
+-- local function get_buffer_names()
+--     local names = {}
+--     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+--         if vim.api.nvim_buf_is_loaded(buf) then
+--             local name = vim.api.nvim_buf_get_name(buf)
+--             if name ~= "" then
+--                 -- Extract just the filename or tail path for easy reading
+--                 table.insert(names, vim.fs.basename(name))
+--             end
+--         end
+--     end
+--     return names
+-- end
+--
+-- -- Custom completion function passed to vim.fn.input
+-- _G.buffer_input_completion = function(ArgLead, CmdLine, CursorPos)
+--     local buffer_names = get_buffer_names()
+--
+--     if ArgLead == "" then
+--         return buffer_names
+--     end
+--
+--     -- Uses Neovim's built-in fuzzy matcher
+--     return vim.fn.matchfuzzy(buffer_names, ArgLead)
+-- end
+--
+-- -- Usage wrapper
+-- function prompt_buffer_name()
+--     local status, input = pcall(function()
+--         return vim.fn.input({
+--             prompt = "Buffer: ",
+--             completion = "customlist,v:lua.buffer_input_completion",
+--         })
+--     end)
+--
+--     vim.cmd("redraw");
+--     local selected_buf = input
+--     if status and input ~= "" then
+--         local buffer_names = get_buffer_names()
+--         local matches = vim.fn.matchfuzzy(buffer_names, input)
+--         selected_buf = matches[1] or input
+--
+--         vim.notify(string.format("Selected buffer: %s", selected_buf), vim.log.levels.INFO);
+--     end
+--
+--     local target_buf = nil
+--     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+--         local name = vim.api.nvim_buf_get_name(buf)
+--         if name:match(vim.pesc(selected_buf) .. "$") then
+--             target_buf = buf
+--             break
+--         end
+--     end
+--
+--     vim.api.nvim_win_set_buf(0, target_buf)
+-- end
+
+function live_buffer_prompt()
+    local buffer_names = {}
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) then
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name ~= "" then
+                table.insert(buffer_names, vim.fs.basename(name))
+            end
+        end
+    end
+
+    local input = ""
+
+    local bs_keys = {
+        [string.char(127)] = true, -- ASCII DEL
+        [string.char(8)] = true,   -- ASCII BS
+        [vim.keycode("<BS>")] = true,
+    }
+
+    while true do
+        local matches = input == "" and buffer_names or vim.fn.matchfuzzy(buffer_names, input)
+
+        local hints = {}
+        for i, name in ipairs(matches) do
+            if i > 5 then break end -- Limit preview to top 5
+            table.insert(hints, string.format("%s(%d)", name, i))
+        end
+        local hint_str = #hints > 0 and " {" .. table.concat(hints, ", ") .. "}" or ""
+
+        vim.cmd("redraw")
+        vim.api.nvim_echo({
+            { "Buffer: ", "Question" },
+            { input, "Normal" },
+            { hint_str, "Comment" },
+        }, false, {})
+
+        local ok, char = pcall(vim.fn.getcharstr)
+        if not ok or char == "\27" or char == vim.keycode("<Esc>") then
+            vim.cmd("redraw")
+            return nil
+        elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
+            vim.cmd("redraw")
+            return matches[1] or input
+        elseif bs_keys[char] then
+            input = input:sub(1, -2)
+        elseif #char == 1 and char:byte() >= 32 then -- Printable characters
+            input = input .. char
+        end
+    end
+
+end
+
+function switch_to_buffer()
+    local selected = live_buffer_prompt()
+    if selected then
+        local target_buf = nil
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match(vim.pesc(selected) .. "$") then
+                target_buf = buf
+                break
+            end
+        end
+
+        vim.api.nvim_win_set_buf(0, target_buf)
+    end
+    print("")
+end

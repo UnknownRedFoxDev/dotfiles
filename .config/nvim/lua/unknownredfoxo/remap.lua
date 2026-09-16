@@ -31,10 +31,11 @@ vim.keymap.set("n", "<C-J>", "yyp", { noremap = true, silent = true })
 vim.keymap.set("n", "<A-f>", FindTaskByHUID)
 
 vim.keymap.set("v", "<Leader>a", ":'<,'>AlignRegex<CR>", { silent = true })
+-- vim.keymap.set("n", "<A-b>", DisplayBuffers, {silent = true})
+vim.keymap.set("n", "<A-b>", ":SwitchBuffers<CR>", { silent = true })
 
 vim.keymap.set("n", "<A-x>", RunCommand)
 vim.keymap.set("n", "<A-X>", RunLastCommandRan)
-vim.keymap.set("n", "<A-b>", DisplayBuffers, {silent = true})
 vim.keymap.set("n", "<C-s>", DisplayScratch, {silent = true})
 
 vim.keymap.set('n', '<leader><A-x>', function()
