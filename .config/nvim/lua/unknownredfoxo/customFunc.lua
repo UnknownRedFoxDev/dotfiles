@@ -508,6 +508,7 @@ function live_buffer_prompt()
     end
 
     local input = ""
+    local cursor = 1 -- from 1 to #input+1
 
     local bs_keys = {
         [string.char(127)] = true, -- ASCII DEL
@@ -520,6 +521,16 @@ function live_buffer_prompt()
         [string.char(23)] = true,
         [vim.keycode("<C-BS>")] = true,
         [vim.keycode("<C-W>")] = true,
+    }
+
+    local del_keys = {
+        ["\128\107D"] = true,
+        [vim.keycode("<Del>")] = true,
+    }
+
+    local ctrl_del_keys = {
+        ["\128\252\4\128\107D"] = true,
+        [vim.keycode("<C-Del>")] = true,
     }
 
     local delimer_pattern = "[%s%.,%-_/]"
@@ -550,21 +561,25 @@ function live_buffer_prompt()
             vim.cmd("redraw")
             return matches[1] or input
         elseif ctrl_bs_keys[char] then
-            if #input > 0 then
-                -- Removing the trailing delimer
-                while #input > 0 and input:sub(-1):match(delimer_pattern) do
-                    input = input:sub(1, -2)
-                end
+            -- Removing the trailing delimer
+            while cursor > 1 and input:sub(cursor - 1, cursor - 1):match(delimer_pattern) do
+                input = input:sub(1, cursor - 2) .. input:sub(cursor)
+                cursor = cursor - 1
+            end
 
-                -- Removing the word until the delimiter is found
-                while #input > 0 and not input:sub(-1):match(delimer_pattern) do
-                    input = input:sub(1, -2)
-                end
+            -- Removing the word until the delimiter is found
+            while cursor > 1 and not input:sub(cursor - 1, cursor - 1):match(delimer_pattern) do
+                input = input:sub(1, cursor - 2) .. input:sub(cursor)
+                cursor = cursor - 1
             end
         elseif bs_keys[char] then
-            input = input:sub(1, -2)
+            if cursor > 1 then
+                input = input:sub(1, cursor - 2) .. input:sub(cursor)
+                cursor = cursor - 1
+            end
         elseif #char == 1 and char:byte() >= 32 then -- Printable characters
-            input = input .. char
+            input = input:sub(1, cursor - 1) .. char .. input:sub(cursor)
+            cursor = cursor + 1
         end
     end
 
