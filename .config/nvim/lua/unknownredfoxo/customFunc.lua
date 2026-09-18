@@ -496,89 +496,35 @@ end
 --     vim.api.nvim_win_set_buf(0, target_buf)
 -- end
 
-function live_buffer_prompt(input_name)
-    local buffer_names = {}
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_loaded(buf) then
-            local name = vim.api.nvim_buf_get_name(buf)
-            if name ~= "" then
-                table.insert(buffer_names, vim.fs.basename(name))
-            end
-        end
-    end
+--
+-- local buffer_names = {}
+-- local delimer_pattern = "[%s%.,%-_/]"
+--
 
-    local input = ""
+function live_buffer_prompt(opts)
+    opts = opts or {}
+    local prompt_label = opts.prompt or "Input: "
+    local get_candidates = opts.get_candidates or function() return {} end
+    local delimer_pattern = opts.delimers or "[%s%.,%-_/]"
+    local input = opts.initial_input or ""
+
     local cursor = 1 -- from 1 to #input+1
 
-    local bs_keys = {
-        [string.char(127)] = true, -- ASCII DEL
-        [string.char(8)] = true,   -- ASCII BS
-        [vim.keycode("<BS>")] = true,
-    }
+    local bs_keys = { [string.char(127)] = true, [string.char(8)] = true, [vim.keycode("<BS>")] = true, }
+    local ctrl_bs_keys = { [string.char(8)] = true, [string.char(23)] = true, [vim.keycode("<C-BS>")] = true, [vim.keycode("<C-W>")] = true, }
+    local del_keys = { ["\128\107D"] = true, [vim.keycode("<Del>")] = true, }
+    local ctrl_del_keys = { ["\128\252\4\128\107D"] = true, [vim.keycode("<C-Del>")] = true, }
 
-    local ctrl_bs_keys = {
-        [string.char(8)] = true,
-        [string.char(23)] = true,
-        [vim.keycode("<C-BS>")] = true,
-        [vim.keycode("<C-W>")] = true,
-    }
-
-    local del_keys = {
-        ["\128\107D"] = true,
-        [vim.keycode("<Del>")] = true,
-    }
-
-    local ctrl_del_keys = {
-        ["\128\252\4\128\107D"] = true,
-        [vim.keycode("<C-Del>")] = true,
-    }
-
-    local left_keys = {
-        ["\128\107kl"] = true,
-        [vim.keycode("<Left>")] = true,
-    }
-    local ctrl_left_keys = {
-        ["\128\253U"] = true,
-        ["\128\252\4\128\107kl"] = true,
-        [vim.keycode("<C-Left>")] = true,
-        [string.char(2)] = true,
-    }
-
-    local right_keys = {
-        ["\128\107kr"] = true,
-        [vim.keycode("<Right>")] = true,
-    }
-    local ctrl_right_keys = {
-        ["\128\253V"] = true,
-        ["\128\252\4\128\107kr"] = true,
-        [vim.keycode("<C-Right>")] = true,
-        [string.char(6)] = true,
-    }
-
-    local home_keys = {
-        ["\128\107kh"] = true,
-        [vim.keycode("<Home>")] = true,
-        [string.char(1)] = true,
-    }
-
-    local end_keys = {
-        ["\128\107@7"] = true,
-        [vim.keycode("<End>")] = true,
-        [string.char(5)] = true,
-    }
-
-
-    -- ctrl right arrow: 128 253 86
-    -- local ctrl_left_keys = {
-    --     ["\128\253\86"] = true,
-    --     [vim.keycode("<C-Right>")] = true,
-    -- }
-
-
-    local delimer_pattern = "[%s%.,%-_/]"
+    local left_keys = { ["\128\107kl"] = true, [vim.keycode("<Left>")] = true, }
+    local ctrl_left_keys = { ["\128\253U"] = true, ["\128\252\4\128\107kl"] = true, [vim.keycode("<C-Left>")] = true, [string.char(2)] = true, }
+    local right_keys = { ["\128\107kr"] = true, [vim.keycode("<Right>")] = true, }
+    local ctrl_right_keys = { ["\128\253V"] = true, ["\128\252\4\128\107kr"] = true, [vim.keycode("<C-Right>")] = true, [string.char(6)] = true, }
+    local home_keys = { ["\128\107kh"] = true, [vim.keycode("<Home>")] = true, [string.char(1)] = true, }
+    local end_keys = { ["\128\107@7"] = true, [vim.keycode("<End>")] = true, [string.char(5)] = true, }
 
     while true do
-        local matches = input == "" and buffer_names or vim.fn.matchfuzzy(buffer_names, input)
+        local candidates = get_candidates(input)
+        local matches = input == "" and candidates or vim.fn.matchfuzzy(candidates, input)
 
         local hints = {}
         for i, name in ipairs(matches) do
@@ -599,7 +545,7 @@ function live_buffer_prompt(input_name)
 
         vim.cmd("redraw")
         vim.api.nvim_echo({
-            { input_name, "Question" },
+            { prompt_label, "Question" },
             { head, "Normal" },
             { char_at_cursor, "Cursor" },
             { tail, "Normal" },
@@ -689,8 +635,22 @@ function live_buffer_prompt(input_name)
     end
 end
 
-function switch_to_buffer()
-    local selected = live_buffer_prompt("Buffer: ")
+function select_buffers()
+    local selected = live_buffer_prompt({
+        prompt = "Buffer: ",
+        get_candidates = function()
+            local names = {}
+            for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                if vim.api.nvim_buf_is_loaded(buf) then
+                    local name = vim.api.nvim_buf_get_name(buf)
+                    if name ~= "" then
+                        table.insert(names, vim.fs.basename(name))
+                    end
+                end
+            end
+            return names
+        end,
+    })
     if selected then
         local target_buf = nil
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -706,4 +666,69 @@ function switch_to_buffer()
         end
     end
     print("")
+end
+
+local function find_candidate_dirs(input_str)
+    local expanded = vim.fn.expand(input_str)
+
+    local dir, prefix
+    if expanded:sub(-1) == "/" then
+        dir = expanded
+        prefix = ""
+    else
+        dir = vim.fs.dirname(expanded) or "."
+        prefix = vim.fs.basename(expanded) or ""
+    end
+
+    if dir ~= "/" and dir:sub(-1) ~= "/" then
+        dir = dir .. "/"
+    end
+
+    if vim.fn.isdirectory(dir) == 0 then
+        return {}
+    end
+
+    local entries = vim.fn.readdir(dir)
+    local candidates = {}
+
+    for _, entry in ipairs(entries) do
+        local full_path = dir .. entry
+        local is_dir = vim.fn.isdirectory(full_path) == 1
+        local display_entry = entry .. (is_dir and "/" or "")
+
+        if prefix == "" or vim.startswith(entry:lower(), prefix:lower()) then
+            table.insert(candidates, display_entry)
+        end
+    end
+
+    return candidates
+end
+
+function find_file()
+    local cwd = vim.fn.getcwd()
+    if cwd:sub(-1) ~= "/" then cwd = cwd .. "/" end
+    local selected = live_buffer_prompt({
+        prompt = "Find File: ",
+        -- initial_input = vim.uv.cwd(),
+        -- initial_input = vim.fn.getcwd() .. "/",
+        initial_input = vim.fn.expand('%:p:h') .. "/",
+        get_candidates = function(input_str)
+            local candidates = find_candidate_dirs(input_str)
+            local dirs = {}
+
+            for _, item in ipairs(candidates) do
+                if item:sub(-1) == "/" then
+                    table.insert(dirs, item)
+                end
+            end
+
+            return dirs
+       end,
+    })
+    if selected and selected ~= "" then
+        local full_path = vim.fn.expand(selected)
+        if vim.fn.isdirectory(full_path) == 1 then
+            print("dir:" .. selected .. " |" ..vim.fn.fnameescape(full_path).."|")
+        end
+    end
 end
