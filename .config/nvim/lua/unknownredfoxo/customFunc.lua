@@ -515,6 +515,15 @@ function live_buffer_prompt()
         [vim.keycode("<BS>")] = true,
     }
 
+    local ctrl_bs_keys = {
+        [string.char(8)] = true,
+        [string.char(23)] = true,
+        [vim.keycode("<C-BS>")] = true,
+        [vim.keycode("<C-W>")] = true,
+    }
+
+    local delimer_pattern = "[%s%.,%-_/]"
+
     while true do
         local matches = input == "" and buffer_names or vim.fn.matchfuzzy(buffer_names, input)
 
@@ -533,12 +542,25 @@ function live_buffer_prompt()
         }, false, {})
 
         local ok, char = pcall(vim.fn.getcharstr)
+        -- input = input .. "Bytes: " .. vim.inspect({ char:byte(1, #char) })
         if not ok or char == "\27" or char == vim.keycode("<Esc>") then
             vim.cmd("redraw")
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             vim.cmd("redraw")
             return matches[1] or input
+        elseif ctrl_bs_keys[char] then
+            if #input > 0 then
+                -- Removing the trailing delimer
+                while #input > 0 and input:sub(-1):match(delimer_pattern) do
+                    input = input:sub(1, -2)
+                end
+
+                -- Removing the word until the delimiter is found
+                while #input > 0 and not input:sub(-1):match(delimer_pattern) do
+                    input = input:sub(1, -2)
+                end
+            end
         elseif bs_keys[char] then
             input = input:sub(1, -2)
         elseif #char == 1 and char:byte() >= 32 then -- Printable characters
