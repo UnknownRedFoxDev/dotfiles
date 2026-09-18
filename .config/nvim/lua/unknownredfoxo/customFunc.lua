@@ -505,10 +505,17 @@ function live_buffer_prompt(opts)
     opts = opts or {}
     local prompt_label = opts.prompt or "Input: "
     local get_candidates = opts.get_candidates or function() return {} end
-    local delimer_pattern = opts.delimers or "[%s%.,%-_/]"
+    local delimer_pattern = opts.delimers or "[%s,%-_/]"
     local input = opts.initial_input or ""
 
-    local cursor = 1 -- from 1 to #input+1
+    local cursor = opts.initial_cursor or 1 -- from 1 to #input+1
+    io.stdout:write("\27[?25l")
+
+    local function cleanup()
+        io.stdout:write("\27[?25h")
+        vim.cmd("redraw")
+        print("")
+      end
 
     local bs_keys = { [string.char(127)] = true, [string.char(8)] = true, [vim.keycode("<BS>")] = true, }
     local ctrl_bs_keys = { [string.char(8)] = true, [string.char(23)] = true, [vim.keycode("<C-BS>")] = true, [vim.keycode("<C-W>")] = true, }
@@ -525,15 +532,20 @@ function live_buffer_prompt(opts)
     local tab_keys = {[string.char(9)] = true,}
 
     while true do
-        local candidates = get_candidates(input)
-        local matches = input == "" and candidates or vim.fn.matchfuzzy(candidates, input)
+        local prefix = input:match("([^/]*)$") or input
+        local candidates = get_candidates(input, prefix)
 
         local hints = {}
-        for i, name in ipairs(matches) do
-            if i > 5 then break end -- Limit preview to top 5
-            table.insert(hints, string.format("%s(%d)", name, i))
+        local trim_hints = false
+        for i, name in ipairs(candidates) do
+            if i > 8 then
+                trim_hints = true
+                break
+            end
+            table.insert(hints, string.format("%s", name))
         end
-        local hint_str = #hints > 0 and " {" .. table.concat(hints, ", ") .. "}" or ""
+        local end_hints = trim_hints and " | ...}" or "}"
+        local hint_str = #hints > 0 and " {" .. table.concat(hints, " | ") .. end_hints or "{}"
 
         local head = input:sub(1, cursor - 1)
         local char_at_cursor = input:sub(cursor, cursor)
@@ -542,7 +554,7 @@ function live_buffer_prompt(opts)
         if char_at_cursor == "" then
             char_at_cursor = " "
         else
-            tail = input:sub(cursor + 1)
+            tail = input:sub(cursor + 1) .. " "
         end
 
         vim.cmd("redraw")
@@ -562,13 +574,11 @@ function live_buffer_prompt(opts)
         -- -------------------------
 
         if not ok or char == "\27" or char == vim.keycode("<Esc>") then
-            vim.cmd("redraw")
-            print("")
+            cleanup()
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
-            vim.cmd("redraw")
-            print("")
-            return candidates[1] or input
+            cleanup()
+            return input
 
         elseif left_keys[char] then
             if cursor > 1 then cursor = cursor - 1 end
@@ -659,7 +669,7 @@ end
 function select_buffers()
     local selected = live_buffer_prompt({
         prompt = "Buffer: ",
-        get_candidates = function()
+        get_candidates = function(_, prefix)
             local names = {}
             for _, buf in ipairs(vim.api.nvim_list_bufs()) do
                 if vim.api.nvim_buf_is_loaded(buf) then
@@ -668,6 +678,9 @@ function select_buffers()
                         table.insert(names, vim.fs.basename(name))
                     end
                 end
+            end
+            if prefix and prefix ~= "" then
+                names = vim.fn.matchfuzzy(names, prefix)
             end
             return names
         end,
@@ -689,16 +702,14 @@ function select_buffers()
     print("")
 end
 
-local function find_candidate_dirs(input_str)
+local function find_candidate_dirs(input_str, prefix)
     local expanded = vim.fn.expand(input_str)
 
-    local dir, prefix
+    local dir
     if expanded:sub(-1) == "/" then
         dir = expanded
-        prefix = ""
     else
         dir = vim.fs.dirname(expanded) or "."
-        prefix = vim.fs.basename(expanded) or ""
     end
 
     if dir ~= "/" and dir:sub(-1) ~= "/" then
@@ -710,18 +721,31 @@ local function find_candidate_dirs(input_str)
     end
 
     local entries = vim.fn.readdir(dir)
+    local dirs = {}
+    local files = {}
     local candidates = {}
 
     for _, entry in ipairs(entries) do
-        local full_path = dir .. entry
-        local is_dir = vim.fn.isdirectory(full_path) == 1
-        local display_entry = entry .. (is_dir and "/" or "")
+        local is_dir = vim.fn.isdirectory(dir .. entry) == 1
 
-        if prefix == "" or vim.startswith(entry:lower(), prefix:lower()) then
-            table.insert(candidates, display_entry)
+        if is_dir then
+            table.insert(dirs, entry .. "/")
+        else
+            table.insert(files, entry)
         end
     end
 
+    if not prefix or prefix == "" then
+        for _, d in ipairs(dirs) do table.insert(candidates, d) end
+        for _, f in ipairs(files) do table.insert(candidates, f) end
+        return candidates
+    end
+
+    dirs = vim.fn.matchfuzzy(dirs, prefix)
+    files = vim.fn.matchfuzzy(files, prefix)
+
+    for _, d in ipairs(dirs) do table.insert(candidates, d) end
+    for _, f in ipairs(files) do table.insert(candidates, f) end
     return candidates
 end
 
@@ -730,26 +754,20 @@ function find_file()
     if cwd:sub(-1) ~= "/" then cwd = cwd .. "/" end
     local selected = live_buffer_prompt({
         prompt = "Find File: ",
-        -- initial_input = vim.uv.cwd(),
-        -- initial_input = vim.fn.getcwd() .. "/",
-        initial_input = vim.fn.expand('%:p:h') .. "/",
-        get_candidates = function(input_str)
-            local candidates = find_candidate_dirs(input_str)
-            local dirs = {}
-
-            for _, item in ipairs(candidates) do
-                if item:sub(-1) == "/" then
-                    table.insert(dirs, item)
-                end
-            end
-
-            return dirs
-       end,
+        initial_input = cwd,
+        initial_cursor = #cwd + 1,
+        get_candidates = find_candidate_dirs
     })
-    if selected and selected ~= "" then
-        local full_path = vim.fn.expand(selected)
+
+    if selected and selected ~= "" and selected ~= cwd then
+        local full_path = vim.fn.fnameescape(vim.fn.expand(selected))
         if vim.fn.isdirectory(full_path) == 1 then
-            print("dir:" .. selected .. " |" ..vim.fn.fnameescape(full_path).."|")
+            print("Path: " .. full_path)
+            vim.cmd(string.format("cd %s", full_path))
+            vim.cmd.Dired()
+        else
+            print("file: " .. full_path)
+            vim.cmd(string.format("edit %s", full_path))
         end
     else
         print("")
