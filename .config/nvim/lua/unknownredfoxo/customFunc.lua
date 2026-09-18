@@ -496,7 +496,7 @@ end
 --     vim.api.nvim_win_set_buf(0, target_buf)
 -- end
 
-function live_buffer_prompt()
+function live_buffer_prompt(input_name)
     local buffer_names = {}
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
         if vim.api.nvim_buf_is_loaded(buf) then
@@ -533,6 +533,48 @@ function live_buffer_prompt()
         [vim.keycode("<C-Del>")] = true,
     }
 
+    local left_keys = {
+        ["\128\107kl"] = true,
+        [vim.keycode("<Left>")] = true,
+    }
+    local ctrl_left_keys = {
+        ["\128\253U"] = true,
+        ["\128\252\4\128\107kl"] = true,
+        [vim.keycode("<C-Left>")] = true,
+        [string.char(2)] = true,
+    }
+
+    local right_keys = {
+        ["\128\107kr"] = true,
+        [vim.keycode("<Right>")] = true,
+    }
+    local ctrl_right_keys = {
+        ["\128\253V"] = true,
+        ["\128\252\4\128\107kr"] = true,
+        [vim.keycode("<C-Right>")] = true,
+        [string.char(6)] = true,
+    }
+
+    local home_keys = {
+        ["\128\107kh"] = true,
+        [vim.keycode("<Home>")] = true,
+        [string.char(1)] = true,
+    }
+
+    local end_keys = {
+        ["\128\107@7"] = true,
+        [vim.keycode("<End>")] = true,
+        [string.char(5)] = true,
+    }
+
+
+    -- ctrl right arrow: 128 253 86
+    -- local ctrl_left_keys = {
+    --     ["\128\253\86"] = true,
+    --     [vim.keycode("<C-Right>")] = true,
+    -- }
+
+
     local delimer_pattern = "[%s%.,%-_/]"
 
     while true do
@@ -545,21 +587,84 @@ function live_buffer_prompt()
         end
         local hint_str = #hints > 0 and " {" .. table.concat(hints, ", ") .. "}" or ""
 
+        local head = input:sub(1, cursor - 1)
+        local char_at_cursor = input:sub(cursor, cursor)
+        local tail = ""
+
+        if char_at_cursor == "" then
+            char_at_cursor = " "
+        else
+            tail = input:sub(cursor + 1)
+        end
+
         vim.cmd("redraw")
         vim.api.nvim_echo({
-            { "Buffer: ", "Question" },
-            { input, "Normal" },
+            { input_name, "Question" },
+            { head, "Normal" },
+            { char_at_cursor, "Cursor" },
+            { tail, "Normal" },
             { hint_str, "Comment" },
         }, false, {})
 
         local ok, char = pcall(vim.fn.getcharstr)
+
+        -- -------------------------
+        -- PRINT KEYCODE
         -- input = input .. "Bytes: " .. vim.inspect({ char:byte(1, #char) })
+        -- -------------------------
+
         if not ok or char == "\27" or char == vim.keycode("<Esc>") then
             vim.cmd("redraw")
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             vim.cmd("redraw")
             return matches[1] or input
+
+        elseif left_keys[char] then
+            if cursor > 1 then cursor = cursor - 1 end
+        elseif ctrl_left_keys[char] then
+            while cursor > 1 and input:sub(cursor - 1, cursor - 1):match(delimer_pattern) do
+                cursor = cursor - 1
+            end
+
+            while cursor > 1 and not input:sub(cursor - 1, cursor - 1):match(delimer_pattern) do
+                cursor = cursor - 1
+            end
+
+        elseif right_keys[char] then
+            if cursor <= #input then cursor = cursor + 1 end
+        elseif ctrl_right_keys[char] then
+            while cursor <= #input and not input:sub(cursor, cursor):match(delimer_pattern) do
+                cursor = cursor + 1
+            end
+
+            while cursor <= #input and input:sub(cursor, cursor):match(delimer_pattern) do
+                cursor = cursor + 1
+            end
+
+        elseif home_keys[char] then
+            cursor = 1
+
+        elseif end_keys[char] then
+            cursor = #input + 1
+
+        -- DELETE KEY
+        elseif ctrl_del_keys[char] then
+            -- Removing the trailing delimer
+            while cursor <= #input and input:sub(cursor, cursor):match(delimer_pattern) do
+                input = input:sub(1, cursor - 1) .. input:sub(cursor + 1)
+            end
+
+            -- Removing the word until the delimiter is found
+            while cursor <= #input and not input:sub(cursor, cursor):match(delimer_pattern) do
+                input = input:sub(1, cursor - 1) .. input:sub(cursor + 1)
+            end
+        elseif del_keys[char] then
+            if cursor <= #input then
+                input = input:sub(1, cursor - 1) .. input:sub(cursor + 1)
+            end
+
+        -- BACKSPACE KEY
         elseif ctrl_bs_keys[char] then
             -- Removing the trailing delimer
             while cursor > 1 and input:sub(cursor - 1, cursor - 1):match(delimer_pattern) do
@@ -582,11 +687,10 @@ function live_buffer_prompt()
             cursor = cursor + 1
         end
     end
-
 end
 
 function switch_to_buffer()
-    local selected = live_buffer_prompt()
+    local selected = live_buffer_prompt("Buffer: ")
     if selected then
         local target_buf = nil
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -597,7 +701,9 @@ function switch_to_buffer()
             end
         end
 
-        vim.api.nvim_win_set_buf(0, target_buf)
+        if target_buf then
+            vim.api.nvim_win_set_buf(0, target_buf)
+        end
     end
     print("")
 end
