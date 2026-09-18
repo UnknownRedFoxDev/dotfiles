@@ -522,6 +522,8 @@ function live_buffer_prompt(opts)
     local home_keys = { ["\128\107kh"] = true, [vim.keycode("<Home>")] = true, [string.char(1)] = true, }
     local end_keys = { ["\128\107@7"] = true, [vim.keycode("<End>")] = true, [string.char(5)] = true, }
 
+    local tab_keys = {[string.char(9)] = true,}
+
     while true do
         local candidates = get_candidates(input)
         local matches = input == "" and candidates or vim.fn.matchfuzzy(candidates, input)
@@ -561,10 +563,12 @@ function live_buffer_prompt(opts)
 
         if not ok or char == "\27" or char == vim.keycode("<Esc>") then
             vim.cmd("redraw")
+            print("")
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             vim.cmd("redraw")
-            return matches[1] or input
+            print("")
+            return candidates[1] or input
 
         elseif left_keys[char] then
             if cursor > 1 then cursor = cursor - 1 end
@@ -628,6 +632,23 @@ function live_buffer_prompt(opts)
                 input = input:sub(1, cursor - 2) .. input:sub(cursor)
                 cursor = cursor - 1
             end
+
+        elseif tab_keys[char] then
+            if #candidates > 0 then
+                local top_match = candidates[1]
+                local left_part = input:sub(1, cursor-1)
+                local right_part = input:sub(cursor)
+
+                local token_start = left_part:find("[^/]*$") or 1
+                local base_prefix = left_part:sub(1, token_start-1)
+
+                local token_end   = right_part:find("[/.]")
+                local tail_remainder = token_end and right_part:sub(token_end) or ""
+
+                input = base_prefix .. top_match .. tail_remainder
+                cursor = #base_prefix + #top_match + 1
+            end
+
         elseif #char == 1 and char:byte() >= 32 then -- Printable characters
             input = input:sub(1, cursor - 1) .. char .. input:sub(cursor)
             cursor = cursor + 1
@@ -730,5 +751,7 @@ function find_file()
         if vim.fn.isdirectory(full_path) == 1 then
             print("dir:" .. selected .. " |" ..vim.fn.fnameescape(full_path).."|")
         end
+    else
+        print("")
     end
 end
