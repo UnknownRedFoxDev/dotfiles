@@ -764,7 +764,11 @@ function find_file()
         if vim.fn.isdirectory(full_path) == 1 then
             print("Path: " .. full_path)
             vim.cmd(string.format("cd %s", full_path))
-            vim.cmd.Dired()
+            -- if vim.api.nvim_get_option_value("buftype", {buf = 0}) == "acwrite" or
+            --    vim.api.nvim_get_option_value("filetype", {buf = 0}) == "dired"then
+            if vim.bo.buftype == "acwrite" or vim.bo.filetype == "dired" then
+                vim.cmd.Dired()
+            end
         else
             print("file: " .. full_path)
             vim.cmd(string.format("edit %s", full_path))
