@@ -87,9 +87,10 @@ function AlignSections(opts)
     vim.api.nvim_buf_set_lines(0, f_line - 1, l_line, false, new_lines)
 end
 
-local function CreateCustomBuffer(buf_name, delete_prev_win_instance, delete_prev_buf_instance)
+local function CreateCustomBuffer(buf_name, delete_prev_win_instance, delete_prev_buf_instance, split_size)
     local target_win = nil
     local target_buf = nil
+    split_size = split_size or 16
 
     for _, win in ipairs(vim.api.nvim_list_wins()) do
         local buf = vim.api.nvim_win_get_buf(win)
@@ -107,7 +108,7 @@ local function CreateCustomBuffer(buf_name, delete_prev_win_instance, delete_pre
         end
     end
 
-    vim.cmd('botright 16split')
+    vim.cmd(string.format("botright %dsplit", split_size))
     if delete_prev_buf_instance == true then
         for _, buf in ipairs(vim.api.nvim_list_bufs()) do
             local name = vim.api.nvim_buf_get_name(buf)
@@ -578,7 +579,7 @@ function live_buffer_prompt(opts)
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             cleanup()
-            return input
+            return input or candidates[1]
 
         elseif left_keys[char] then
             if cursor > 1 then cursor = cursor - 1 end
@@ -749,7 +750,7 @@ local function find_candidate_dirs(input_str, prefix)
     return candidates
 end
 
-function find_file()
+function FindFile()
     local cwd = vim.fn.getcwd()
     if cwd:sub(-1) ~= "/" then cwd = cwd .. "/" end
     local selected = live_buffer_prompt({
@@ -776,4 +777,21 @@ function find_file()
     else
         print("")
     end
+end
+
+function FindFirstError()
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local find_error_regex = "(%w+.?%w):(%d+):?(%d+): error: .*"
+    local file, line_num, col_num
+    vim.cmd("normal! gg")
+    for i, line in ipairs(lines) do
+        file, line_num, col_num = string.match(line, find_error_regex)
+        if file and line_num and col_num then
+            -- print(string.format("File: %s\n\tat line: %d\n\ton column: %d\n", file, line_num, col_num))
+            vim.api.nvim_win_set_cursor(0, { i, 0 })
+            break;
+        end
+    end
+
+    OpenFileUnderCursor()
 end
