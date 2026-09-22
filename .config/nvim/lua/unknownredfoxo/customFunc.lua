@@ -317,10 +317,10 @@ function OpenFileUnderCursor()
     local path = ""
     local line_num = ""
     local col_num = ""
-    path, line_num, col_num = line:match("(.-):(%d+):(%d+):")
+    path, line_num, col_num = line:match("([^:\n%s]+):(%d+):(%d+):?")
 
     if path == "" or path == nil then
-        path, line_num = line:match("(.-):(%d+):")
+        path, line_num = line:match("([^:\n%s]+):(%d+):")
     end
 
     if path == "" then
@@ -780,15 +780,15 @@ function FindFile()
 end
 
 function FindFirstError()
-    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-    local find_error_regex = "(%w+.?%w):(%d+):?(%d+): error: .*"
+    local lines = vim.api.nvim_buf_get_lines(0, 2, -1, false)
+    local find_error_regex = "([^:\n%s]+):(%d+):(%d+):?"
     local file, line_num, col_num
     vim.cmd("normal! gg")
     for i, line in ipairs(lines) do
         file, line_num, col_num = string.match(line, find_error_regex)
         if file and line_num and col_num then
-            -- print(string.format("File: %s\n\tat line: %d\n\ton column: %d\n", file, line_num, col_num))
-            vim.api.nvim_win_set_cursor(0, { i, 0 })
+            print(string.format("File: %s\n\tat line: %d\n\ton column: %d\n", file, line_num, col_num))
+            vim.api.nvim_win_set_cursor(0, { i + 2, 0 })
             break;
         end
     end
