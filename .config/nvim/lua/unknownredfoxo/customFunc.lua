@@ -545,8 +545,8 @@ function live_buffer_prompt(opts)
             end
             table.insert(hints, string.format("%s", name))
         end
-        local end_hints = trim_hints and " | ...}" or "}"
-        local hint_str = #hints > 0 and " {" .. table.concat(hints, " | ") .. end_hints or "{}"
+        local end_hints = #hints > 1 and (trim_hints and " | ...}" or "}") or "]"
+        local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or "{}"
 
         local head = input:sub(1, cursor - 1)
         local char_at_cursor = input:sub(cursor, cursor)
@@ -574,12 +574,19 @@ function live_buffer_prompt(opts)
         -- input = input .. "Bytes: " .. vim.inspect({ char:byte(1, #char) })
         -- -------------------------
 
+        if not tab_keys[char] then
+            tab_candidates = nil
+            tab_index = 0
+            tab_base_prefix = ""
+            tab_tail_remainder = ""
+        end
+
         if not ok or char == "\27" or char == vim.keycode("<Esc>") then
             cleanup()
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             cleanup()
-            return input or candidates[1]
+            return input ~= "" and input or candidates[1]
 
         elseif left_keys[char] then
             if cursor > 1 then cursor = cursor - 1 end
@@ -645,19 +652,41 @@ function live_buffer_prompt(opts)
             end
 
         elseif tab_keys[char] then
-            if #candidates > 0 then
-                local top_match = candidates[1]
+            -- if #candidates > 0 then
+            --     local top_match = candidates[1]
+            --     local left_part = input:sub(1, cursor-1)
+            --     local right_part = input:sub(cursor)
+            --
+            --     local token_start = left_part:find("[^/]*$") or 1
+            --     local base_prefix = left_part:sub(1, token_start-1)
+            --
+            --     local token_end   = right_part:find("[/.]")
+            --     local tail_remainder = token_end and right_part:sub(token_end) or ""
+            --
+            --     input = base_prefix .. top_match .. tail_remainder
+            --     cursor = #base_prefix + #top_match + 1
+            -- end
+            -- -------------------------------
+            if not tab_candidates then
+                tab_candidates = candidates
+                tab_index = 0
+
                 local left_part = input:sub(1, cursor-1)
                 local right_part = input:sub(cursor)
 
                 local token_start = left_part:find("[^/]*$") or 1
-                local base_prefix = left_part:sub(1, token_start-1)
+                tab_base_prefix   = left_part:sub(1, token_start-1)
 
                 local token_end   = right_part:find("[/.]")
-                local tail_remainder = token_end and right_part:sub(token_end) or ""
+                tab_tail_remainder = token_end and right_part:sub(token_end) or ""
+            end
 
-                input = base_prefix .. top_match .. tail_remainder
-                cursor = #base_prefix + #top_match + 1
+            if #tab_candidates > 0 then
+                tab_index = (tab_index % #tab_candidates) + 1
+                local selected_match = tab_candidates[tab_index]
+
+                input = tab_base_prefix .. selected_match .. tab_tail_remainder
+                cursor = #tab_base_prefix + #selected_match + 1
             end
 
         elseif #char == 1 and char:byte() >= 32 then -- Printable characters
@@ -757,7 +786,7 @@ function FindFile()
         prompt = "Find File: ",
         initial_input = cwd,
         initial_cursor = #cwd + 1,
-        get_candidates = find_candidate_dirs
+        get_candidates = find_candidate_dirs,
     })
 
     if selected and selected ~= "" and selected ~= cwd then
