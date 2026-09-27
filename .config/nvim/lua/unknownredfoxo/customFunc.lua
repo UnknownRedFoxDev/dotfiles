@@ -508,6 +508,7 @@ function live_buffer_prompt(opts)
     local get_candidates = opts.get_candidates or function() return {} end
     local delimer_pattern = opts.delimers or "[%s,%-_/]"
     local input = opts.initial_input or ""
+    local prefer_candidate = opts.prefer_candidate or false
 
     local cursor = opts.initial_cursor or 1 -- from 1 to #input+1
     io.stdout:write("\27[?25l")
@@ -586,6 +587,9 @@ function live_buffer_prompt(opts)
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             cleanup()
+            if prefer_candidate and candidates[1] then
+                return candidates[1]
+            end
             return input ~= "" and input or candidates[1]
 
         elseif left_keys[char] then
@@ -699,6 +703,7 @@ end
 function select_buffers()
     local selected = live_buffer_prompt({
         prompt = "Buffer: ",
+        prefer_candidate = true,
         get_candidates = function(_, prefix)
             local names = {}
             for _, buf in ipairs(vim.api.nvim_list_bufs()) do
