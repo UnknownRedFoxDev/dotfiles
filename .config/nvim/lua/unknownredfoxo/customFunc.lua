@@ -209,14 +209,72 @@ local function CreateCommandBuffer(cmd, buf_name)
     return wrapped_cmd
 end
 
+local function find_executables(input, prefix)
+    if not input or input == "" then
+        return {}
+    end
+
+    local candidates = {}
+
+    if input:sub(1, 2) == "./" then
+        local search_pattern = input:sub(3)
+        local handle = vim.loop.fs_scandir(vim.fn.getcwd())
+        if handle then
+            while true do
+                local name, type = vim.loop.fs_scandir_next(handle)
+                if not name then break end
+
+                local full_path = vim.fn.getcwd() .. "/" .. name
+                local is_exec = vim.fn.executable(full_path) == 1
+
+                if is_exec and name:find(search_pattern, 1, true) then
+                    table.insert(candidates, name)
+                end
+            end
+        end
+    else
+        local path_env = os.getenv("PATH") or ""
+        local path_sep = ":"
+        local paths = vim.split(path_env, path_sep)
+
+        for _, dir in ipairs(paths) do
+            local handle = vim.loop.fs_scandir(dir)
+            if handle then
+                while true do
+                    local name, type = vim.loop.fs_scandir_next(handle)
+                    if not name then break end
+
+                    if name:find(input, 1, true) then
+                        local full_path = dir .. "/" .. name
+                        if vim.fn.executable(full_path) == 1 and candidates[#candidates] ~= name then
+                            table.insert(candidates, name)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return candidates
+end
+
+_G.run_command_history = _G.run_command_history or {}
+
 function RunCommand()
     -- local cmd = vim.fn.input("Run command: ", "", "shellcmd")
-    local status, cmd = pcall(function()
-        return vim.fn.input("Run command: ")
-    end)
+    -- local status, cmd = pcall(function()
+    --     return vim.fn.input("Run command: ")
+    -- end)
+    local cmd = live_buffer_prompt({
+        prompt = "Run command: ",
+        history = _G.run_command_history,
+        get_candidates = find_executables,
+    })
 
-    if not status or cmd == "" or cmd == nil then
-        return
+    if not cmd or cmd == "" then return end
+
+    if _G.run_command_history[#_G.run_command_history] ~= cmd then
+        table.insert(_G.run_command_history, cmd)
     end
 
     if cmd:match("^grep%s") and not cmd:match("%-%-color") then
@@ -549,6 +607,10 @@ function live_buffer_prompt(opts)
         local end_hints = #hints > 1 and (trim_hints and " | ...}" or "}") or "]"
         -- local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or "{}"
         local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or ""
+        local max_len = vim.v.echospace - #prompt_label - #input - 5
+        if #hint_str > max_len and max_len > 10 then
+            hint_str = hint_str:sub(1, max_len - 1) .. "...}"
+        end
 
         local head = input:sub(1, cursor - 1)
         local char_at_cursor = input:sub(cursor, cursor)
