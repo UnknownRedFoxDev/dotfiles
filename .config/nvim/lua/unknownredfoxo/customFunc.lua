@@ -509,29 +509,29 @@ function live_buffer_prompt(opts)
     local delimer_pattern = opts.delimers or "[%s,%-_/]"
     local input = opts.initial_input or ""
     local prefer_candidate = opts.prefer_candidate or false
+    local history = opts.history or {}
 
     local cursor = opts.initial_cursor or 1 -- from 1 to #input+1
-    io.stdout:write("\27[?25l")
-
-    local function cleanup()
-        io.stdout:write("\27[?25h")
-        vim.cmd("redraw")
-        print("")
-      end
 
     local bs_keys = { [string.char(127)] = true, [string.char(8)] = true, [vim.keycode("<BS>")] = true, }
     local ctrl_bs_keys = { [string.char(8)] = true, [string.char(23)] = true, [vim.keycode("<C-BS>")] = true, [vim.keycode("<C-W>")] = true, }
     local del_keys = { ["\128\107D"] = true, [vim.keycode("<Del>")] = true, }
     local ctrl_del_keys = { ["\128\252\4\128\107D"] = true, [vim.keycode("<C-Del>")] = true, }
 
+    local up_keys = { ["\128\107ku"] = true, [vim.keycode("<Up>")] = true, }
+    local down_keys = { ["\128\107kd"] = true, [vim.keycode("<Down>")] = true, }
     local left_keys = { ["\128\107kl"] = true, [vim.keycode("<Left>")] = true, }
-    local ctrl_left_keys = { ["\128\253U"] = true, ["\128\252\4\128\107kl"] = true, [vim.keycode("<C-Left>")] = true, [string.char(2)] = true, }
     local right_keys = { ["\128\107kr"] = true, [vim.keycode("<Right>")] = true, }
+
+    local ctrl_left_keys = { ["\128\253U"] = true, ["\128\252\4\128\107kl"] = true, [vim.keycode("<C-Left>")] = true, [string.char(2)] = true, }
     local ctrl_right_keys = { ["\128\253V"] = true, ["\128\252\4\128\107kr"] = true, [vim.keycode("<C-Right>")] = true, [string.char(6)] = true, }
+
     local home_keys = { ["\128\107kh"] = true, [vim.keycode("<Home>")] = true, [string.char(1)] = true, }
     local end_keys = { ["\128\107@7"] = true, [vim.keycode("<End>")] = true, [string.char(5)] = true, }
-
     local tab_keys = {[string.char(9)] = true,}
+
+    local history_idx = #history + 1
+    local saved_typed_input = ""
 
     while true do
         local prefix = input:match("([^/]*)$") or input
@@ -547,7 +547,8 @@ function live_buffer_prompt(opts)
             table.insert(hints, string.format("%s", name))
         end
         local end_hints = #hints > 1 and (trim_hints and " | ...}" or "}") or "]"
-        local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or "{}"
+        -- local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or "{}"
+        local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or ""
 
         local head = input:sub(1, cursor - 1)
         local char_at_cursor = input:sub(cursor, cursor)
@@ -568,6 +569,13 @@ function live_buffer_prompt(opts)
             { hint_str, "Comment" },
         }, false, {})
 
+        io.stdout:write("\27[?25l")
+
+        local function cleanup()
+            io.stdout:write("\27[?25h")
+            vim.cmd("redraw")
+            print("")
+        end
         local ok, char = pcall(vim.fn.getcharstr)
 
         -- -------------------------
@@ -592,6 +600,7 @@ function live_buffer_prompt(opts)
             end
             return input ~= "" and input or candidates[1]
 
+        --  ================ [ LEFT KEY ] ================
         elseif left_keys[char] then
             if cursor > 1 then cursor = cursor - 1 end
         elseif ctrl_left_keys[char] then
@@ -603,6 +612,7 @@ function live_buffer_prompt(opts)
                 cursor = cursor - 1
             end
 
+        --  ================ [ RIGHT KEY ] ================
         elseif right_keys[char] then
             if cursor <= #input then cursor = cursor + 1 end
         elseif ctrl_right_keys[char] then
@@ -614,6 +624,32 @@ function live_buffer_prompt(opts)
                 cursor = cursor + 1
             end
 
+        --  ================ [ UP KEY ] ================
+        elseif up_keys[char] then
+            if #history > 0 then
+                if history_idx > #history then
+                    saved_typed_input = input
+                end
+                if history_idx > 1 then
+                    history_idx = history_idx - 1 -- going up the history (i.e. to the left)
+                    input = history[history_idx]
+                    cursor = #input + 1
+                end
+            end
+
+        --  ================ [ DOWN KEY ] ================
+        elseif down_keys[char] then
+            if #history > 0 and history_idx <= #history then
+                history_idx = history_idx + 1 -- going down the history (i.e. to the right)
+                if history_idx > #history then
+                    input = saved_typed_input
+                else
+                    input = history[history_idx]
+                end
+                cursor = #input + 1
+            end
+
+        --  ================ [ HOME KEY ] ================
         elseif home_keys[char] then
             cursor = 1
 
@@ -656,21 +692,6 @@ function live_buffer_prompt(opts)
             end
 
         elseif tab_keys[char] then
-            -- if #candidates > 0 then
-            --     local top_match = candidates[1]
-            --     local left_part = input:sub(1, cursor-1)
-            --     local right_part = input:sub(cursor)
-            --
-            --     local token_start = left_part:find("[^/]*$") or 1
-            --     local base_prefix = left_part:sub(1, token_start-1)
-            --
-            --     local token_end   = right_part:find("[/.]")
-            --     local tail_remainder = token_end and right_part:sub(token_end) or ""
-            --
-            --     input = base_prefix .. top_match .. tail_remainder
-            --     cursor = #base_prefix + #top_match + 1
-            -- end
-            -- -------------------------------
             if not tab_candidates then
                 tab_candidates = candidates
                 tab_index = 0
