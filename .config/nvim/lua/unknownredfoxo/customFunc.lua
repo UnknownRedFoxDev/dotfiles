@@ -604,12 +604,15 @@ function live_buffer_prompt(opts)
             end
             table.insert(hints, string.format("%s", name))
         end
-        local end_hints = #hints > 1 and (trim_hints and " | ...}" or "}") or "]"
-        -- local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or "{}"
-        local hint_str = #hints > 1 and (" {" .. table.concat(hints, " | ") .. end_hints) or #hints == 1 and (" [" .. table.concat(hints, "") .. end_hints) or ""
+        local start_hints = (#hints > 1 and " {") or (#hints == 1 and " [") or ""
+        local first_hint = (#hints >= 1 and table.concat(hints, "", 1, 1)) or ""
+        local sep = " | "
+        local hint_str = (#hints >= 2 and sep .. table.concat(hints, sep, 2)) or ""
+        local end_hints = (#hints > 1 and (trim_hints and sep .. "...}" or "}")) or #hints == 1 and "]" or ""
+
         local max_len = vim.v.echospace - #prompt_label - #input - 5
         if #hint_str > max_len and max_len > 10 then
-            hint_str = hint_str:sub(1, max_len - 1) .. "...}"
+            hint_str = hint_str:sub(1, max_len - 1) .. "..."
         end
 
         local head = input:sub(1, cursor - 1)
@@ -624,11 +627,15 @@ function live_buffer_prompt(opts)
 
         vim.cmd("redraw")
         vim.api.nvim_echo({
-            { prompt_label, "Question" },
-            { head, "Normal" },
-            { char_at_cursor, "Cursor" },
-            { tail, "Normal" },
-            { hint_str, "Comment" },
+            -- { prompt_label,   "Title"},
+            { prompt_label,   "Special"},
+            { head,           "Normal"  },
+            { char_at_cursor, "Cursor"  },
+            { tail,           "Normal"  },
+            { start_hints,    "Normal" },
+            { first_hint,     "MatchParen"},
+            { hint_str,       "Normal" },
+            { end_hints,      "Normal" },
         }, false, {})
 
         io.stdout:write("\27[?25l")
