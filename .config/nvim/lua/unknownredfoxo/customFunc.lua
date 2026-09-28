@@ -593,26 +593,27 @@ function live_buffer_prompt(opts)
 
     while true do
         local prefix = input:match("([^/]*)$") or input
-        local candidates = get_candidates(input, prefix)
+        local active_candidates = tab_candidates or get_candidates(input, prefix)
 
-        local hints = {}
+        local first_hint = active_candidates[1] or ""
+        local remaining_hints = {}
         local trim_hints = false
-        for i, name in ipairs(candidates) do
+
+        for i = 2, #active_candidates do
             if i > 8 then
                 trim_hints = true
                 break
             end
-            table.insert(hints, string.format("%s", name))
+            table.insert(remaining_hints, active_candidates[i])
         end
-        local start_hints = (#hints > 1 and " {") or (#hints == 1 and " [") or ""
-        local first_hint = (#hints >= 1 and table.concat(hints, "", 1, 1)) or ""
-        local sep = " | "
-        local hint_str = (#hints >= 2 and sep .. table.concat(hints, sep, 2)) or ""
-        local end_hints = (#hints > 1 and (trim_hints and sep .. "...}" or "}")) or #hints == 1 and "]" or ""
 
-        local max_len = vim.v.echospace - #prompt_label - #input - 5
-        if #hint_str > max_len and max_len > 10 then
-            hint_str = hint_str:sub(1, max_len - 1) .. "..."
+        local start_hints = first_hint ~= "" and (#remaining_hints > 0 and " {" or #remaining_hints == 0 and " [") or ""
+        local end_hints = first_hint ~= "" and (#remaining_hints > 0 and (trim_hints and " | ...}" or "}") or  #remaining_hints == 0 and "]") or ""
+        local hint_str = ""
+        if first_hint ~= "" then
+            if #remaining_hints > 0 then
+                hint_str = string.format(" | %s", table.concat(remaining_hints, " | "))
+            end
         end
 
         local head = input:sub(1, cursor - 1)
@@ -624,7 +625,6 @@ function live_buffer_prompt(opts)
         else
             tail = input:sub(cursor + 1) .. " "
         end
-
         vim.cmd("redraw")
         vim.api.nvim_echo({
             -- { prompt_label,   "Title"},
@@ -632,7 +632,7 @@ function live_buffer_prompt(opts)
             { head,           "Normal"  },
             { char_at_cursor, "Cursor"  },
             { tail,           "Normal"  },
-            { start_hints,    "Normal" },
+            { start_hints,    "Normal"},
             { first_hint,     "MatchParen"},
             { hint_str,       "Normal" },
             { end_hints,      "Normal" },
@@ -654,7 +654,6 @@ function live_buffer_prompt(opts)
 
         if not tab_keys[char] then
             tab_candidates = nil
-            tab_index = 0
             tab_base_prefix = ""
             tab_tail_remainder = ""
         end
@@ -664,10 +663,10 @@ function live_buffer_prompt(opts)
             return nil
         elseif char == "\r" or char == "\n" or char == vim.keycode("<CR>") then
             cleanup()
-            if prefer_candidate and candidates[1] then
-                return candidates[1]
+            if prefer_candidate and active_candidates[1] then
+                return active_candidates[1]
             end
-            return input ~= "" and input or candidates[1]
+            return input ~= "" and input or active_candidates[1]
 
         --  ================ [ LEFT KEY ] ================
         elseif left_keys[char] then
@@ -762,25 +761,29 @@ function live_buffer_prompt(opts)
 
         elseif tab_keys[char] then
             if not tab_candidates then
-                tab_candidates = candidates
-                tab_index = 0
+                tab_candidates = {}
+                for _, c in ipairs(active_candidates) do
+                    table.insert(tab_candidates, c)
+                end
 
-                local left_part = input:sub(1, cursor-1)
+                local left_part = input:sub(1, cursor - 1)
                 local right_part = input:sub(cursor)
 
                 local token_start = left_part:find("[^/]*$") or 1
-                tab_base_prefix   = left_part:sub(1, token_start-1)
+                tab_base_prefix = left_part:sub(1, token_start - 1)
 
-                local token_end   = right_part:find("[/.]")
+                local token_end = right_part:find("[/.]")
                 tab_tail_remainder = token_end and right_part:sub(token_end) or ""
             end
 
             if #tab_candidates > 0 then
-                tab_index = (tab_index % #tab_candidates) + 1
-                local selected_match = tab_candidates[tab_index]
+                if input ~= "" then
+                    local selected_match = tab_candidates[1]
+                    input = tab_base_prefix .. selected_match .. tab_tail_remainder
+                    cursor = #tab_base_prefix + #selected_match + 1
+                end
 
-                input = tab_base_prefix .. selected_match .. tab_tail_remainder
-                cursor = #tab_base_prefix + #selected_match + 1
+                table.insert(tab_candidates, table.remove(tab_candidates, 1))
             end
 
         elseif #char == 1 and char:byte() >= 32 then -- Printable characters
