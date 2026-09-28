@@ -914,11 +914,22 @@ function FindFirstError()
     for i, line in ipairs(lines) do
         file, line_num, col_num = string.match(line, find_error_regex)
         if file and line_num and col_num then
-            print(string.format("File: %s\n\tat line: %d\n\ton column: %d\n", file, line_num, col_num))
+            -- print(string.format("File: %s\n\tat line: %d\n\ton column: %d\n", file, line_num, col_num))
             vim.api.nvim_win_set_cursor(0, { i + 2, 0 })
             break;
         end
     end
 
     OpenFileUnderCursor()
+end
+
+function SwitchSplitToMain()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local current_win = vim.api.nvim_get_current_win()
+    vim.cmd("wincmd p");
+    local target_win = vim.api.nvim_get_current_win()
+    if target_win ~= current_win then
+        vim.api.nvim_win_set_buf(target_win, current_buf)
+        vim.api.nvim_win_close(current_win, true)
+    end
 end

@@ -49,4 +49,5 @@ vim.keymap.set('n', '<A-t>', newTask)
 vim.keymap.set('n', '<A-T>', CreateTaskFromComment)
 vim.keymap.set('n', '<A-F>', FindFile)
 vim.keymap.set('n', '<A-e>', FindFirstError)
+vim.keymap.set('n', '<A-w>', SwitchSplitToMain)
 
