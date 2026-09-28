@@ -26,8 +26,19 @@ vim.keymap.set("v", "<A-j>", ":m '>+1<CR>gv=gv", { noremap = true, silent = true
 vim.keymap.set("v", "<A-k>", ":m '<-2<CR>gv=gv", { noremap = true, silent = true })
 vim.keymap.set("n", "<A-j>", ":m .+1<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<A-k>", ":m .-2<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<C-K>", "yyP", { noremap = true, silent = true })
-vim.keymap.set("n", "<C-J>", "yyp", { noremap = true, silent = true })
+vim.keymap.set("n", "<C-K>", function()
+    local line = vim.api.nvim_get_current_line()
+    local row = vim.api.nvim_win_get_cursor(0)[1]
+    vim.api.nvim_buf_set_lines(0, row, row, false, { line })
+    vim.api.nvim_win_set_cursor(0, { row, 0 })
+end, { noremap = true, silent = true })
+
+vim.keymap.set("n", "<C-J>", function()
+  local line = vim.api.nvim_get_current_line()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  vim.api.nvim_buf_set_lines(0, row - 1, row - 1, false, { line })
+  vim.api.nvim_win_set_cursor(0, { row + 1, 0 })
+end, { noremap = true, silent = true })
 
 vim.keymap.set("n", "<A-f>", FindTaskByHUID)
 
@@ -39,10 +50,10 @@ vim.keymap.set("n", "<A-x>", RunCommand)
 vim.keymap.set("n", "<A-X>", RunLastCommandRan)
 vim.keymap.set("n", "<C-s>", DisplayScratch, {silent = true})
 
-vim.keymap.set('n', '<leader><A-x>', function()
-    local line = vim.api.nvim_get_current_line()
-    assert(load(line))()
-end, { desc = "Execute current line as Lua" })
+-- vim.keymap.set('n', '<leader><A-x>', function()
+--     local line = vim.api.nvim_get_current_line()
+--     assert(load(line))()
+-- end, { desc = "Execute current line as Lua" })
 
 vim.keymap.set('n', '<A-J>', OpenFileUnderCursor, { silent = true, noremap = true })
 vim.keymap.set('n', '<A-t>', newTask)
