@@ -10,7 +10,11 @@ vim.keymap.set("n", "<Esc>", vim.cmd.nohlsearch)
 vim.keymap.set("n", "<C-c>", vim.cmd.nohlsearch)
 
 vim.keymap.set("n", "<A-q>", function()
-    require("unknownredfoxo.find_file").open()
+    require("unknownredfoxo.find_file").select_buffer()
+end, { desc = "Find buffer" })
+
+vim.keymap.set("n", "<A-f>", function()
+    require("unknownredfoxo.find_file").select_file()
 end, { desc = "Find file" })
 
 vim.keymap.set("n", "<leader>ff", function ()
@@ -51,9 +55,6 @@ end, { noremap = true, silent = true })
 vim.keymap.set("v", "<Leader>a", ":'<,'>AlignRegex<CR>", { silent = true })
 -- vim.keymap.set("n", "<A-b>", DisplayBuffers, {silent = true})
 vim.keymap.set("n", "<A-b>", ":SwitchBuffers<CR>", { silent = true })
-vim.keymap.set("n", "<A-q>", function()
-    require("unknownredfoxo.find_file").select_buffer()
-end, { desc = "Find file" })
 
 vim.keymap.set("n", "<A-x>", RunCommand)
 vim.keymap.set("n", "<A-X>", RunLastCommandRan)

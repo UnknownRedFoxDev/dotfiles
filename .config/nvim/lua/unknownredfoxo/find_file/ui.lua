@@ -1,12 +1,19 @@
 local Prompt = require("unknownredfoxo.find_file.prompt")
 local Completion = require("unknownredfoxo.find_file.completion")
 local M = {}
+local candidates_provider
 
 vim.api.nvim_set_hl(0, "InteractivePromptCursor", { default = true, reverse = true })
 
 function M.open(opts)
     opts = opts or {}
-    local candidates = opts.candidates or {}
+
+    if type(opts.candidates) == "function" then
+        candidates_provider = opts.candidates
+    else
+        local static_list = opts.candidates or {}
+        candidates_provider = function() return static_list end
+    end
 
     local buf = vim.api.nvim_create_buf(false, true)
     vim.bo[buf].buftype = "nofile"
@@ -25,19 +32,19 @@ function M.open(opts)
     io.stdout:write("\27[?25l")
 
     local ns_id = vim.api.nvim_create_namespace("emacs_prompt_ui")
-    local cleaned_up = false
-    local orig_timeout = vim.o.timeout
-    local orig_timeoutlen = vim.o.timeoutlen
+    local got_cleaned = false
+    local og_timeout = vim.o.timeout
+    local og_timeoutlen = vim.o.timeoutlen
     local label = opts.prompt or "Select: "
 
     vim.o.timeout = false
 
     local function close_ui()
-        if cleaned_up then return end
-        cleaned_up = true
+        if got_cleaned then return end
+        got_cleaned = true
         io.stdout:write("\27[?25h")
-        vim.o.timeout = orig_timeout
-        vim.o.timeoutlen = orig_timeoutlen
+        vim.o.timeout = og_timeout
+        vim.o.timeoutlen = og_timeoutlen
         if vim.api.nvim_win_is_valid(win) then
             vim.api.nvim_win_close(win, true)
         end
@@ -47,7 +54,7 @@ function M.open(opts)
         on_change = function() end,
     })
 
-    local current_matches = candidates
+    local current_matches = candidates_provider("")
 
     local function update(text)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
@@ -57,26 +64,31 @@ function M.open(opts)
         local input = prompt:get_input()
         local cursor_pos = prompt:get_cursor()
 
-        current_matches = override_matches or Completion.filter(input, candidates)
+        if override_matches then
+            current_matches = override_matches
+        else
+            local candidates = candidates_provider(input)
+            current_matches = Completion.filter(input, candidates)
+        end
         local max_visible = 5
 
         local completion_str = ""
         if #current_matches > 1 then
-            local limit = math.min(#current_matches, max_visible)
-            local choices = table.concat(current_matches, " | ", 2, limit)
+            local visible_limit = math.min(#current_matches, max_visible)
+            local available_cand = table.concat(current_matches, " | ", 2, visible_limit)
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
-            completion_str = string.format("{%s | %s%s}", current_matches[1], choices, extra_fluff)
+            completion_str = string.format("{%s | %s%s}", current_matches[1], available_cand, extra_fluff)
         elseif #current_matches == 1 then
-            local full_match = current_matches[1]
-            if full_match:lower():sub(1, #input) == input:lower() then
-                local suffix = full_match:sub(#input + 1)
+            local matched = current_matches[1]
+            if matched:lower():sub(1, #input) == input:lower() then
+                local suffix = matched:sub(#input + 1)
                 if #suffix > 0 then
                     completion_str = "[" .. suffix .. "]"
                 else
                     completion_str = ""
                 end
             else
-                completion_str = "[" .. full_match .. "]"
+                completion_str = "[" .. matched .. "]"
             end
         else
             completion_str = "[No Matches]"
@@ -170,13 +182,28 @@ function M.open(opts)
         if #current_matches == 0 then return end
 
         local input = prompt:get_input()
+
         if #current_matches == 1 then
-            prompt:set_input(current_matches[1])
+            local choice = current_matches[1]
+            prompt:set_input(choice)
+
+            -- If candidate is a directory, re-evaluate candidates immediately
+            if choice:sub(-1) == "/" then
+                render() -- Re-fetches candidates for the newly entered directory
+                return
+            end
         else
             local prefix = Completion.common_prefix(current_matches, input)
             if #prefix > #input then
                 prompt:set_input(prefix)
+
+                -- If prefix expansion lands cleanly on a directory boundary
+                if prefix:sub(-1) == "/" then
+                    render()
+                    return
+                end
             else
+                -- Cycle candidates
                 local first = table.remove(current_matches, 1)
                 table.insert(current_matches, first)
             end
