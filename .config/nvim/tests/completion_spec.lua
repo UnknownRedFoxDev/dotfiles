@@ -33,5 +33,14 @@ describe("Completion engine", function()
         assert.equals("foo_", common)
     end)
 
+    it("common prefix among nothing", function()
+        assert.equals("", Completion.common_prefix({}))
+    end)
+
+    it("common prefix among one match", function()
+        local common = Completion.common_prefix({ "foo_bar" })
+        assert.equals("foo_bar", common)
+    end)
+
 end)
 

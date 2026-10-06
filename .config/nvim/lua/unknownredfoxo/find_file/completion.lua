@@ -36,9 +36,10 @@ end
 --- @param candidates string[]
 --- @return string
 function Completion.common_prefix(candidates)
-    if not candidates or candidates == {} then
+    if not candidates or #candidates == 0 then
         return ""
     end
+    if #candidates == 1 then return candidates[1] end
 
     local prefix = candidates[1]
     for i = 2, #candidates do
