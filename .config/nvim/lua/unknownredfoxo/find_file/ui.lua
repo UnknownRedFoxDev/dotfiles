@@ -53,11 +53,11 @@ function M.open(opts)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
     end
 
-    local function render()
+    local function render(override_matches)
         local input = prompt:get_input()
         local cursor_pos = prompt:get_cursor()
 
-        current_matches = Completion.filter(input, candidates)
+        current_matches = override_matches or Completion.filter(input, candidates)
         local max_visible = 5
 
         local completion_str = ""
@@ -65,7 +65,7 @@ function M.open(opts)
             local limit = math.min(#current_matches, max_visible)
             local choices = table.concat(current_matches, " | ", 2, limit)
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
-            completion_str = string.format("{ %s | %s%s }", current_matches[1], choices, extra_fluff)
+            completion_str = string.format("{%s | %s%s}", current_matches[1], choices, extra_fluff)
         elseif #current_matches == 1 then
             completion_str = "[" .. current_matches[1] .. "]"
         else
@@ -91,7 +91,7 @@ function M.open(opts)
         -- First Candidate
         if #current_matches > 0 then
             -- Skip space and opening brace '{' or '[' + space
-            local match_start = input_end + 3
+            local match_start = input_end + 2
             local match_end = match_start + #current_matches[1]
             vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, match_start, match_end)
         end
@@ -163,7 +163,7 @@ function M.open(opts)
         if #current_matches == 1 then
             prompt:set_input(current_matches[1])
         else
-            local prefix = Completion.common_prefix(current_matches)
+            local prefix = Completion.common_prefix(current_matches, input)
             if #prefix > #input then
                 prompt:set_input(prefix)
             else
@@ -172,7 +172,7 @@ function M.open(opts)
             end
         end
 
-        render()
+        render(current_matches)
     end, keymap_opts)
 
     vim.keymap.set("n", "<S-Tab>", function()
@@ -182,7 +182,7 @@ function M.open(opts)
         if #current_matches == 1 then
             prompt:set_input(current_matches[1])
         else
-            local prefix = Completion.common_prefix(current_matches)
+            local prefix = Completion.common_prefix(current_matches, input)
             if #prefix > #input then
                 prompt:set_input(prefix)
             else
@@ -191,7 +191,7 @@ function M.open(opts)
             end
         end
 
-        render()
+        render(current_matches)
     end, keymap_opts)
 
     for i = 32, 126 do

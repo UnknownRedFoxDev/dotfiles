@@ -1,12 +1,9 @@
 local ui = require("unknownredfoxo.find_file.ui")
 local test_candidates = {
-  "apple",
-  "banana",
-  "cherry",
-  "date",
-  "elderberry",
-  "fig",
-  "grape",
+  "foo_ooo",
+  "foo_bar",
+  "foo_foo",
+  "foo_baz",
 }
 
 local M = {}

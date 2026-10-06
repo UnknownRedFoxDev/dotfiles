@@ -34,18 +34,41 @@ end
 
 --- Calculates the longest common prefix across a list of strings
 --- @param candidates string[]
+--- @param input string[]
 --- @return string
-function Completion.common_prefix(candidates)
-    if not candidates or #candidates == 0 then
-        return ""
-    end
+function Completion.common_prefix(candidates, input)
+    if #candidates == 0 then return "" end
     if #candidates == 1 then return candidates[1] end
 
-    local prefix = candidates[1]
-    for i = 2, #candidates do
-        while candidates[i]:sub(1, #prefix) ~= prefix and #prefix > 0 do
-            prefix = prefix:sub(1, #prefix - 1)
+    local prefix_candidates = {}
+
+    -- Filter by input first, if given
+    if input and #input > 0 then
+        local lower_input = input:lower()
+        for _, match in ipairs(candidates) do
+            if match:lower():sub(1, #input) == lower_input then
+                table.insert(prefix_candidates, match)
+            end
         end
+    else
+        prefix_candidates = candidates
+    end
+
+    -- If neither candidate nor prefix gave any candidates, return nothing
+    if #prefix_candidates == 0 then
+        return ""
+    end
+
+    -- Otherwirse, return the common prefix amongst all candidates
+    local prefix = prefix_candidates[1]
+    for i = 2, #prefix_candidates do
+        local str = prefix_candidates[i]
+        local j = 1
+        while j <= #prefix and j <= #str and prefix:sub(j, j):lower() == str:sub(j, j):lower() do
+            j = j + 1
+        end
+        prefix = prefix:sub(1, j - 1)
+        if prefix == "" then break end
     end
 
     return prefix
