@@ -29,7 +29,7 @@ function M.open(opts)
     local cleaned_up = false
     local orig_timeout = vim.o.timeout
     local orig_timeoutlen = vim.o.timeoutlen
-    local prompt_str = opts.prompt or "Select: "
+    local label = opts.prompt or "Select: "
 
     -- Disable mapping timeouts while inside the minibuffer
     vim.o.timeout = false
@@ -64,29 +64,43 @@ function M.open(opts)
         local inline_display = ""
         local completion_str = ""
         if #current_matches > 1 then
-            local choices = table.concat(current_matches, " | ", 1, math.min(#current_matches, 5))
-            completion_str = string.format("{%s}", choices)
+            local choices = table.concat(current_matches, " | ", 2, math.min(#current_matches, 5))
+            completion_str = string.format("{%s | %s}", current_matches[1], choices)
         elseif #current_matches == 1 then
-            completion_str = string.format("[%s]", current_matches[1])
+            completion_str = "[" .. current_matches[1] .. "]"
         else
             completion_str = "[No Matches]"
         end
 
-        inline_display = prompt_str .. input .. " " .. completion_str
+        inline_display = label .. input .. " " .. completion_str
         update(inline_display)
 
+        -- ========= HIGHLIGHTS =========
         vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
-        local hl_cursor = #prompt_str + cursor_pos
+        -- Label
+        vim.api.nvim_buf_add_highlight(buf, ns_id, "Special", 0, 0, #label)
 
-        if cursor_pos < #input then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
-        else
-            vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
-                virt_text = { { " ", "InteractivePromptCursor" } },
-                virt_text_pos = "overlay",
-            })
+        -- Input
+        if #input > 0 then
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "Normal", 0, #label, #label + #input)
         end
+
+        -- Candidates
+        if #current_matches > 0 then
+            local candidate_start = #label + #input + 1
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, candidate_start+1, candidate_start+#current_matches[1]+1)
+        end
+
+        local hl_cursor = #label + cursor_pos
+        -- if cursor_pos < #input then
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "Cursor", 0, hl_cursor, hl_cursor + 1)
+        -- else
+        --     vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
+        --         virt_text = { { " ", "InteractivePromptCursor" } },
+        --         virt_text_pos = "overlay",
+        --     })
+        -- end
     end
 
     vim.api.nvim_create_autocmd("BufWipeout", {
