@@ -67,7 +67,17 @@ function M.open(opts)
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
             completion_str = string.format("{%s | %s%s}", current_matches[1], choices, extra_fluff)
         elseif #current_matches == 1 then
-            completion_str = "[" .. current_matches[1] .. "]"
+            local full_match = current_matches[1]
+            if full_match:lower():sub(1, #input) == input:lower() then
+                local suffix = full_match:sub(#input + 1)
+                if #suffix > 0 then
+                    completion_str = "[" .. suffix .. "]"
+                else
+                    completion_str = ""
+                end
+            else
+                completion_str = "[" .. full_match .. "]"
+            end
         else
             completion_str = "[No Matches]"
         end
