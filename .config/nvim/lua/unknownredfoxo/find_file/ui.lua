@@ -9,8 +9,8 @@ function M.open(opts)
     local candidates = opts.candidates or {}
 
     local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-    vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+    vim.bo[buf].buftype = "nofile"
+    vim.bo[buf].bufhidden = "wipe"
 
     local win = vim.api.nvim_open_win(buf, true, {
         relative = "editor",
@@ -20,7 +20,6 @@ function M.open(opts)
         height = 1,
         style = "minimal",
         border = "rounded",
-        -- title = opts.prompt or "Find file> "
     })
 
     io.stdout:write("\27[?25l")
@@ -31,7 +30,6 @@ function M.open(opts)
     local orig_timeoutlen = vim.o.timeoutlen
     local label = opts.prompt or "Select: "
 
-    -- Disable mapping timeouts while inside the minibuffer
     vim.o.timeout = false
 
     local function close_ui()
@@ -61,7 +59,6 @@ function M.open(opts)
 
         current_matches = Completion.filter(input, candidates)
 
-        local inline_display = ""
         local completion_str = ""
         if #current_matches > 1 then
             local choices = table.concat(current_matches, " | ", 2, math.min(#current_matches, 5))
@@ -72,7 +69,7 @@ function M.open(opts)
             completion_str = "[No Matches]"
         end
 
-        inline_display = label .. input .. " " .. completion_str
+        local inline_display = label .. input .. " " .. completion_str
         update(inline_display)
 
         -- ========= HIGHLIGHTS =========
@@ -81,26 +78,32 @@ function M.open(opts)
         -- Label
         vim.api.nvim_buf_add_highlight(buf, ns_id, "Special", 0, 0, #label)
 
-        -- Input
+        -- Typed Input
+        local input_start = #label
+        local input_end = input_start + #input
         if #input > 0 then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "Normal", 0, #label, #label + #input)
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "Normal", 0, input_start, input_end)
         end
 
-        -- Candidates
+        -- First Candidate
         if #current_matches > 0 then
-            local candidate_start = #label + #input + 1
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, candidate_start+1, candidate_start+#current_matches[1]+1)
+            -- Skip space and opening brace '{' or '['
+            local match_start = input_end + 2
+            local match_end = match_start + #current_matches[1]
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, match_start, match_end)
         end
 
+        -- Cursor
         local hl_cursor = #label + cursor_pos
-        -- if cursor_pos < #input then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "Cursor", 0, hl_cursor, hl_cursor + 1)
-        -- else
-        --     vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
-        --         virt_text = { { " ", "InteractivePromptCursor" } },
-        --         virt_text_pos = "overlay",
-        --     })
-        -- end
+        if cursor_pos < #input then
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
+        else
+            -- Fallback
+            vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
+                virt_text = { { " ", "InteractivePromptCursor" } },
+                virt_text_pos = "overlay",
+            })
+        end
     end
 
     vim.api.nvim_create_autocmd("BufWipeout", {
@@ -113,7 +116,6 @@ function M.open(opts)
 
     render()
 
-    -- Corrected table name and added nowait = true
     local keymap_opts = { buffer = buf, noremap = true, silent = true, nowait = true }
 
     vim.keymap.set("n", "<CR>", function()
