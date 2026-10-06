@@ -45,15 +45,14 @@ function Prompt:backspace()
 end
 
 function Prompt:delete()
-    if self.cursor <= 0 then
+    if self.cursor >= #self.input then
         return
     end
 
-  local head = self.input:sub(1, self.cursor - 1)
-  local tail = self.input:sub(self.cursor + 1)
+  local head = self.input:sub(1, self.cursor)
+  local tail = self.input:sub(self.cursor + 2)
 
   self.input = head .. tail
-  self.cursor = self.cursor == (#self.input and self.cursor - 1) or self.cursor
   self.on_change(self.input)
 end
 

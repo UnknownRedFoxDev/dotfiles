@@ -16,7 +16,7 @@ local M = {}
 function M.open(opts)
   opts = opts or {}
   ui.open({
-      prompt = " Test Fruits ",
+      prompt = "Select fruit: ",
       candidates = test_candidates,
       on_submit = function(choice)
         print("Selected: " .. choice)

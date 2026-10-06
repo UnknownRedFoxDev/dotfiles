@@ -20,7 +20,7 @@ function M.open(opts)
         height = 1,
         style = "minimal",
         border = "rounded",
-        title = opts.prompt or "Find file> "
+        -- title = opts.prompt or "Find file> "
     })
 
     io.stdout:write("\27[?25l")
@@ -29,6 +29,7 @@ function M.open(opts)
     local cleaned_up = false
     local orig_timeout = vim.o.timeout
     local orig_timeoutlen = vim.o.timeoutlen
+    local prompt_str = opts.prompt or "Select: "
 
     -- Disable mapping timeouts while inside the minibuffer
     vim.o.timeout = false
@@ -71,15 +72,17 @@ function M.open(opts)
             completion_str = "[No Matches]"
         end
 
-        inline_display = input .. " " .. completion_str
+        inline_display = prompt_str .. input .. " " .. completion_str
         update(inline_display)
 
         vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
+        local hl_cursor = #prompt_str + cursor_pos
+
         if cursor_pos < #input then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, cursor_pos, cursor_pos + 1)
+            vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
         else
-            vim.api.nvim_buf_set_extmark(buf, ns_id, 0, cursor_pos, {
+            vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
                 virt_text = { { " ", "InteractivePromptCursor" } },
                 virt_text_pos = "overlay",
             })
