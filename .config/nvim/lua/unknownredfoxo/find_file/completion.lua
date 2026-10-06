@@ -1,5 +1,9 @@
 local Completion = {}
 
+local function get_value(candidate)
+    return type(candidate) == "table" and candidate.value or candidate
+end
+
 --- Filters candidates matching the query string
 --- @param query string User input string
 --- @param candidates string[] List of available items
@@ -14,24 +18,26 @@ function Completion.filter(input, candidates)
     local lower_input = input:lower()
 
     for _, candidate in ipairs(candidates) do
-        local lower_candidate = candidate:lower()
-        if lower_candidate:sub(1, #input) == lower_input then
+        local value = get_value(candidate)
+        local lower_val = value:lower()
+
+        if lower_val:sub(1, #input) == lower_input then
             table.insert(prefix_matches, candidate)
-        elseif lower_candidate:find(lower_input, 1, true) then
+        elseif lower_val:find(lower_input, 1, true) then
             table.insert(substring_matches, candidate)
         end
     end
 
     -- Combine: Prefix matches come first, followed by substring matches
     local result = {}
-    for _, match in ipairs(prefix_matches) do
-        table.insert(result, match)
-    end
-    for _, match in ipairs(substring_matches) do
-        table.insert(result, match)
-    end
+    for _, match in ipairs(prefix_matches) do table.insert(result, match) end
+    for _, match in ipairs(substring_matches) do table.insert(result, match) end
 
     return result
+end
+
+local function get_value(cand)
+    return type(cand) == "table" and cand.value or cand
 end
 
 --- Calculates the longest common prefix across a list of strings
@@ -40,7 +46,7 @@ end
 --- @return string
 function Completion.common_prefix(candidates, input)
     if #candidates == 0 then return "" end
-    if #candidates == 1 then return candidates[1] end
+    if #candidates == 1 then return get_value(candidates[1]) end
 
     local prefix_candidates = {}
 
@@ -48,8 +54,9 @@ function Completion.common_prefix(candidates, input)
     if input and #input > 0 then
         local lower_input = input:lower()
         for _, match in ipairs(candidates) do
-            if match:lower():sub(1, #input) == lower_input then
-                table.insert(prefix_candidates, match)
+            local val = get_value(match)
+            if val:lower():sub(1, #input) == lower_input then
+                table.insert(prefix_candidates, val)
             end
         end
     else
@@ -62,9 +69,9 @@ function Completion.common_prefix(candidates, input)
     end
 
     -- Otherwirse, return the common prefix amongst all candidates
-    local prefix = prefix_candidates[1]
+    local prefix = get_value(prefix_candidates[1])
     for i = 2, #prefix_candidates do
-        local str = prefix_candidates[i]
+        local str = get_value(prefix_candidates[i])
         local j = 1
         while j <= #prefix and j <= #str and prefix:sub(j, j):lower() == str:sub(j, j):lower() do
             j = j + 1

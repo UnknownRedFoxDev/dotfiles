@@ -7,6 +7,7 @@ vim.api.nvim_set_hl(0, "InteractivePromptCursor", { default = true, reverse = tr
 
 function M.open(opts)
     opts = opts or {}
+    local prefer_candidate = opts.prefer_candidate or false
 
     if type(opts.candidates) == "function" then
         candidates_provider = opts.candidates
@@ -60,6 +61,16 @@ function M.open(opts)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
     end
 
+    local function get_display(cand)
+        if not cand then return "" end
+        return type(cand) == "table" and cand.display or cand
+    end
+
+    local function get_value(cand)
+        if not cand then return "" end
+        return type(cand) == "table" and cand.value or cand
+    end
+
     local function render(override_matches)
         local input = prompt:get_input()
         local cursor_pos = prompt:get_cursor()
@@ -70,16 +81,23 @@ function M.open(opts)
             local candidates = candidates_provider(input)
             current_matches = Completion.filter(input, candidates)
         end
-        local max_visible = 5
 
+        local max_visible = 5
         local completion_str = ""
+
         if #current_matches > 1 then
+            local display_cand = {}
             local visible_limit = math.min(#current_matches, max_visible)
-            local available_cand = table.concat(current_matches, " | ", 2, visible_limit)
+            for i = 2, visible_limit do
+                table.insert(display_cand, get_display(current_matches[i]))
+            end
+            local available_cand = table.concat(display_cand, " | ")
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
-            completion_str = string.format("{%s | %s%s}", current_matches[1], available_cand, extra_fluff)
+
+            completion_str = string.format("{%s | %s%s}", get_display(current_matches[1]), available_cand, extra_fluff)
+
         elseif #current_matches == 1 then
-            local matched = current_matches[1]
+            local matched = get_value(current_matches[1])
             if matched:lower():sub(1, #input) == input:lower() then
                 local suffix = matched:sub(#input + 1)
                 if #suffix > 0 then
@@ -88,7 +106,7 @@ function M.open(opts)
                     completion_str = ""
                 end
             else
-                completion_str = "[" .. matched .. "]"
+                completion_str = "[" .. get_display(current_matches[1]) .. "]"
             end
         else
             completion_str = "[No Matches]"
@@ -114,7 +132,7 @@ function M.open(opts)
         if #current_matches > 0 then
             -- Skip space and opening brace '{' or '[' + space
             local match_start = input_end + 2
-            local match_end = match_start + #current_matches[1]
+            local match_end = match_start + #get_display(current_matches[1])
             vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, match_start, match_end)
         end
 
@@ -144,7 +162,7 @@ function M.open(opts)
     local keymap_opts = { buffer = buf, noremap = true, silent = true, nowait = true }
 
     vim.keymap.set("n", "<CR>", function()
-        local result = current_matches[1] or prompt:get_input()
+        local result = get_value(current_matches[1]) or prompt:get_input()
         close_ui()
         if opts.on_submit then
             opts.on_submit(result)
@@ -184,7 +202,7 @@ function M.open(opts)
         local input = prompt:get_input()
 
         if #current_matches == 1 then
-            local choice = current_matches[1]
+            local choice = get_value(current_matches[1])
             prompt:set_input(choice)
 
             -- If candidate is a directory, re-evaluate candidates immediately
