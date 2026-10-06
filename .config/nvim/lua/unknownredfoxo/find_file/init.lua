@@ -12,6 +12,7 @@ function M.select_file(opts)
     ui.open({
         prompt = opts.prompt or "Find File: ",
         candidates = file_provider.get_candidates,
+        perfer_candidate = false,
         on_submit = function(choice)
             if choice and choice ~= "" then
                 vim.cmd("edit " .. vim.fn.fnameescape(choice))
@@ -30,6 +31,7 @@ function M.select_buffer(opts)
     ui.open({
         prompt = opts.prompt or "Switch buffer> ",
         candidates = candidates,
+        perfer_candidate = true,
         on_submit = function(choice)
             if choice and choice ~= "" then
                 vim.cmd("buffer " .. vim.fn.fnameescape(choice))

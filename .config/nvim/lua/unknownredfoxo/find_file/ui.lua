@@ -162,7 +162,17 @@ function M.open(opts)
     local keymap_opts = { buffer = buf, noremap = true, silent = true, nowait = true }
 
     vim.keymap.set("n", "<CR>", function()
-        local result = get_value(current_matches[1]) or prompt:get_input()
+        local input = prompt:get_input()
+        local result
+
+        if prefer_candidate and #current_matches > 0 then
+            result = get_value(current_matches[1]) or input
+        else
+            result = (#input > 0 and input)
+                  or (#current_matches > 0 and get_value(current_matches[1]))
+                  or ""
+        end
+
         close_ui()
         if opts.on_submit then
             opts.on_submit(result)
