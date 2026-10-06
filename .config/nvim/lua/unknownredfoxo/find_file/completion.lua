@@ -4,32 +4,34 @@ local Completion = {}
 --- @param query string User input string
 --- @param candidates string[] List of available items
 --- @return string[]|nil List of matching candidates
-function Completion.filter(query, candidates)
-    if not query or query == "" then
+function Completion.filter(input, candidates)
+    if not input or input == "" then
         return candidates
     end
 
-    local results = {}
-    local lower_query = query:lower()
+    local prefix_matches = {}
+    local substring_matches = {}
+    local lower_input = input:lower()
 
-    for _, item in ipairs(candidates) do
-        local lower_item = item:lower()
-
-        if lower_item:sub(1, #lower_query) == lower_query then
-            table.insert(results, item)
-        elseif lower_item:find(lower_query, 1, true) then
-            table.insert(results, item)
+    for _, candidate in ipairs(candidates) do
+        local lower_candidate = candidate:lower()
+        if lower_candidate:sub(1, #input) == lower_input then
+            table.insert(prefix_matches, candidate)
+        elseif lower_candidate:find(lower_input, 1, true) then
+            table.insert(substring_matches, candidate)
         end
     end
 
-    -- for _, item in ipairs(prefix_matches) do
-    --     table.insert(results, item)
-    -- end
-    -- for _, item in ipairs(substring_matches) do
-    --     table.insert(results, item)
-    -- end
+    -- Combine: Prefix matches come first, followed by substring matches
+    local result = {}
+    for _, match in ipairs(prefix_matches) do
+        table.insert(result, match)
+    end
+    for _, match in ipairs(substring_matches) do
+        table.insert(result, match)
+    end
 
-    return results
+    return result
 end
 
 --- Calculates the longest common prefix across a list of strings

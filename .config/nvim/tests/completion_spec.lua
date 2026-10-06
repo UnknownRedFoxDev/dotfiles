@@ -60,5 +60,12 @@ describe("Completion engine", function()
     it("handles inputs containing spaces", function()
         local matches = { "my file A", "my file B" }
         assert.equals("my file ", Completion.common_prefix(matches, "my "))
-    end)end)
+    end)
+
+    it("ranks prefix matches ahead of substring matches", function()
+        local candidates = { "init.lua", "ui.lua" }
+        local matches = Completion.filter("u", candidates)
+        assert.same({ "ui.lua", "init.lua" }, matches)
+    end)
+end)
 
