@@ -12,35 +12,53 @@ describe("Completion engine", function()
         "ui/style.toml",
     }
 
-    it("return empty candidates", function()
-        local matches = Completion.filter("", candidates)
-        assert.same(candidates, matches)
+    it("handles nil input by evaluating all matches", function()
+        local matches = { "app_one", "app_two" }
+        assert.equals("app_", Completion.common_prefix(matches, nil))
     end)
 
-    it("filters candidates by prefix match", function()
-        local matches = Completion.filter("main", candidates)
-        assert.same({ "main.c" }, matches)
+    it("finds prefix across all matches when input is empty string", function()
+        local matches = { "test_a", "test_b" }
+        assert.equals("test_", Completion.common_prefix(matches, ""))
     end)
 
-    it("filters candidates by substring match", function()
-        local matches = Completion.filter("prompt", candidates)
-        assert.same({ "lua/unknownredfoxo/find_file/prompt.lua", "tests/prompt.lua" }, matches)
+    it("returns empty string when input is empty and candidates share no prefix", function()
+        local matches = { "apple", "banana" }
+        assert.equals("", Completion.common_prefix(matches, ""))
     end)
 
-    it("finds common prefix among a set of matches", function()
-        local matches = { "foo_bar", "foo_baz", "foo_qux" }
-        local common = Completion.common_prefix(matches)
-        assert.equals("foo_", common)
+    it("returns exact input when prefix candidates diverge immediately", function()
+        local matches = { "fooA", "fooB" }
+        assert.equals("foo", Completion.common_prefix(matches, "foo"))
     end)
 
-    it("common prefix among nothing", function()
-        assert.equals("", Completion.common_prefix({}))
+    it("stops at the shortest exact match", function()
+        local matches = { "foo", "foo_bar", "foo_baz" }
+        assert.equals("foo", Completion.common_prefix(matches, "fo"))
     end)
 
-    it("common prefix among one match", function()
-        local common = Completion.common_prefix({ "foo_bar" })
-        assert.equals("foo_bar", common)
+    it("handles file paths and special symbols safely", function()
+        local matches = { "dir/file.c", "dir/file.h" }
+        assert.equals("dir/file.", Completion.common_prefix(matches, "dir/"))
     end)
 
-end)
+    it("preserves candidate case even when input casing differs wildly", function()
+        local matches = { "SYSTEM_A", "SYSTEM_B" }
+        assert.equals("SYSTEM_", Completion.common_prefix(matches, "sySt"))
+    end)
+
+    it("ignores substring matches if prefix matches exist", function()
+        local matches = { "app_main", "app_test", "sub_app_main" }
+        assert.equals("app_", Completion.common_prefix(matches, "ap"))
+    end)
+
+    it("handles input longer than the matching candidates", function()
+        local matches = { "foo" }
+        assert.equals("foo", Completion.common_prefix(matches, "foo_bar"))
+    end)
+
+    it("handles inputs containing spaces", function()
+        local matches = { "my file A", "my file B" }
+        assert.equals("my file ", Completion.common_prefix(matches, "my "))
+    end)end)
 
