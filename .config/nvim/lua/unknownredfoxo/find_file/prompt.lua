@@ -14,6 +14,12 @@ function Prompt.new(opts)
     return self
 end
 
+function Prompt:set_input(text)
+    if #text == 0 then return end
+    self.input = text
+    self.cursor = #text
+end
+
 function Prompt:get_input()
     return self.input
 end
