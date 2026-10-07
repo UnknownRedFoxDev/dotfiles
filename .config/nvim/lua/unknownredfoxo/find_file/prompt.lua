@@ -70,4 +70,79 @@ function Prompt:cancel()
     self.on_cancel()
 end
 
+--- Classifies a character into a grouping ID for boundary checks
+--- @param char string|nil Single character string
+--- @return integer
+local function char_class(char)
+    if not char or char == ""    then return 0 end
+    if char:match("%s")          then return 1 end  -- Whitespace
+    if char:match("[%w_]")       then return 2 end  -- Word chars (letters, digits, _)
+    if char:match("[/\\%.%-%:]") then return 3 end  -- Delimiters / Path separators
+    return 4  -- Other symbols/punctuation
+end
+
+--- Finds previous boundary position moving left from cursor
+--- @return integer # New 0-indexed cursor position
+function Prompt:get_prev_word_pos()
+    if self.cursor <= 0 then return 0 end
+
+    local str = self.input
+    local pos = self.cursor-1
+
+    while pos > 0 and char_class(str:sub(pos, pos)) ~= 2 do
+        pos = pos - 1
+    end
+
+    local target_class = char_class(str:sub(pos, pos))
+    while pos > 0 and char_class(str:sub(pos, pos)) == target_class do
+        pos = pos - 1
+    end
+
+    return pos
+end
+
+--- Finds next boundary position moving right from cursor
+--- @return integer # New 0-indexed cursor position
+function Prompt:get_next_word_pos()
+    local len = #self.input
+    if self.cursor >= len then return len end
+
+    local str = self.input
+    local pos = self.cursor + 1
+
+    while pos <= len and char_class(str:sub(pos, pos)) ~= 2 do
+        pos = pos + 1
+    end
+
+    local target_class = char_class(str:sub(pos, pos))
+    while pos <= len and char_class(str:sub(pos, pos)) == target_class do
+        pos = pos + 1
+    end
+
+    return pos - 1
+end
+
+function Prompt:move_to_prev_word()
+    self.cursor = self:get_prev_word_pos()+1
+end
+
+function Prompt:move_to_next_word()
+    self.cursor = self:get_next_word_pos()+1
+end
+
+function Prompt:delete_prev_word()
+    if self.cursor <= 0 then return end -- can't delete what's not present
+
+    local prev_pos = self:get_prev_word_pos()
+    self.input = self.input:sub(1, prev_pos) .. self.input:sub(self.cursor + 1)
+    self.cursor = prev_pos
+end
+
+function Prompt:delete_next_word()
+    if self.cursor >= #self.input then return end -- can't delete what's not present
+
+    local next_pos = self:get_next_word_pos()
+    self.input = self.input:sub(1, self.cursor) .. self.input:sub(next_pos + 1)
+end
+
 return Prompt

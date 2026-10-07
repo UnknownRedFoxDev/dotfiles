@@ -171,8 +171,8 @@ function M.open(opts)
             result = get_value(current_matches[1]) or input
         else
             result = (#input > 0 and input)
-                  or (#current_matches > 0 and get_value(current_matches[1]))
-                  or ""
+            or (#current_matches > 0 and get_value(current_matches[1]))
+            or ""
         end
 
         close_ui()
@@ -193,6 +193,26 @@ function M.open(opts)
         prompt:delete()
         render()
     end, keymap_opts)
+
+    -- Dictionary table with string keys requires `pairs`, NOT `ipairs`
+    local word_keymaps = {
+        ["<C-BS>"]     = function() prompt:delete_prev_word() end,
+        ["<C-w>"]      = function() prompt:delete_prev_word() end,
+        ["<C-h>"]      = function() prompt:delete_prev_word() end,
+        ["<C-Del>"]    = function() prompt:delete_next_word() end,
+        ["<C-Delete>"] = function() prompt:delete_next_word() end,
+        ["<C-Left>"]   = function() prompt:move_to_prev_word() end,
+        ["<A-b>"]      = function() prompt:move_to_prev_word() end,
+        ["<C-Right>"]  = function() prompt:move_to_next_word() end,
+        ["<A-f>"]      = function() prompt:move_to_next_word() end,
+    }
+
+    for key, fn in pairs(word_keymaps) do
+        vim.keymap.set("n", key, function()
+            fn()
+            render()
+        end, keymap_opts)
+    end
 
     vim.keymap.set("n", "<Left>", function()
         if prompt.cursor > 0 then
