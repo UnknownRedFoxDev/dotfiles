@@ -6,16 +6,22 @@ local M = {}
 function M.get_candidates(input)
     input = input or ""
 
+    local expanded_input = vim.fn.expand(input)
+
     local search_dir = "."
     local prefix = ""
 
-    if input:find("/") then
-        search_dir = input:match("^(.*/)") or "."
-        prefix = search_dir
+    if expanded_input:find("/") then
+        if expanded_input:sub(1, 1) == "/" then
+            search_dir = expanded_input:match("^(.*/)") or "/"
+            prefix = search_dir
+        else
+            search_dir = expanded_input:match("^(.*/)") or "."
+            prefix = input:match("^(.*/)") or ""
+        end
     end
 
-    local expanded_dir = vim.fn.expand(search_dir)
-    local handle = vim.uv.fs_scandir(expanded_dir)
+    local handle = vim.uv.fs_scandir(search_dir)
     if not handle then return {} end
 
     local entries = {}
@@ -23,7 +29,7 @@ function M.get_candidates(input)
         local name, type_ = vim.uv.fs_scandir_next(handle)
         if not name then break end
 
-        local item_path = (prefix == "" or prefix == "./") and name or (prefix .. name)
+        local item_path = prefix .. name
         local display_name = name
 
         if type_ == "directory" then

@@ -9,9 +9,12 @@ local M = {}
 function M.select_file(opts)
     opts = opts or {}
 
+    local initial_dir = vim.fn.getcwd() .. "/"
+
     ui.open({
         prompt = opts.prompt or "Find File: ",
         candidates = file_provider.get_candidates,
+        default_input = initial_dir,
         perfer_candidate = false,
         on_submit = function(choice)
             if choice and choice ~= "" then

@@ -8,6 +8,7 @@ vim.api.nvim_set_hl(0, "InteractivePromptCursor", { default = true, reverse = tr
 function M.open(opts)
     opts = opts or {}
     local prefer_candidate = opts.prefer_candidate or false
+    local default_input = opts.default_input or ""
 
     if type(opts.candidates) == "function" then
         candidates_provider = opts.candidates
@@ -55,7 +56,8 @@ function M.open(opts)
         on_change = function() end,
     })
 
-    local current_matches = candidates_provider("")
+    local current_matches = candidates_provider(default_input)
+    prompt:set_input(default_input)
 
     local function update(text)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
