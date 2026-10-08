@@ -1,7 +1,7 @@
-local buffer_provider = require("unknownredfoxo.find_file.providers.buffer")
-local file_provider   = require("unknownredfoxo.find_file.providers.file")
-local executable      = require("unknownredfoxo.find_file.providers.executable")
-local ui              = require("unknownredfoxo.find_file.ui")
+local buffer_provider = require("unknownredfoxo.interactive_prompt.providers.buffer")
+local file_provider   = require("unknownredfoxo.interactive_prompt.providers.file")
+local executable      = require("unknownredfoxo.interactive_prompt.providers.executable")
+local ui              = require("unknownredfoxo.interactive_prompt.ui")
 local buffers         = require("unknownredfoxo.buffers")
 
 local M = {}

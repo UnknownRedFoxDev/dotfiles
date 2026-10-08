@@ -10,19 +10,19 @@ vim.keymap.set("n", "<Esc>", vim.cmd.nohlsearch)
 vim.keymap.set("n", "<C-c>", vim.cmd.nohlsearch)
 
 vim.keymap.set("n", "<A-b>", function()
-    require("unknownredfoxo.find_file").select_buffer()
+    require("unknownredfoxo.interactive_prompt").select_buffer()
 end, { desc = "Find buffer" })
 
 vim.keymap.set("n", "<Leader>ff", function()
-    require("unknownredfoxo.find_file").select_file()
+    require("unknownredfoxo.interactive_prompt").select_file()
 end, { desc = "Find file" })
 
 vim.keymap.set("n", "<A-x>", function()
-    require("unknownredfoxo.find_file").select_executable()
+    require("unknownredfoxo.interactive_prompt").select_executable()
 end, { desc = "Find file" })
 
 vim.keymap.set("n", "<A-f>", function ()
-    require("telescope.builtin").find_files()
+    require("telescope.builtin").interactive_prompts()
 end)
 
 vim.keymap.set("n", "<A-p>", function()
@@ -61,7 +61,6 @@ vim.keymap.set("n", "<A-X>", RunLastCommandRan)
 vim.keymap.set("n", "<C-s>", DisplayScratch, {silent = true})
 
 vim.keymap.set('n', '<A-J>', OpenFileUnderCursor, { silent = true, noremap = true })
-vim.keymap.set('n', '<A-F>', FindFile)
 vim.keymap.set('n', '<A-e>', FindFirstError)
 vim.keymap.set('n', '<A-w>', SwitchSplitToMain)
 

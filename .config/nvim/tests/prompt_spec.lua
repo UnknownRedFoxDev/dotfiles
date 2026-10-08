@@ -1,4 +1,4 @@
-local Prompt = require("unknownredfoxo.find_file.prompt")
+local Prompt = require("unknownredfoxo.interactive_prompt.prompt")
 
 describe("Prompt engine", function()
     it("empty prompt", function()

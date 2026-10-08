@@ -1,5 +1,5 @@
-local Prompt = require("unknownredfoxo.find_file.prompt")
-local Completion = require("unknownredfoxo.find_file.completion")
+local Prompt = require("unknownredfoxo.interactive_prompt.prompt")
+local Completion = require("unknownredfoxo.interactive_prompt.completion")
 local M = {}
 local candidates_provider
 

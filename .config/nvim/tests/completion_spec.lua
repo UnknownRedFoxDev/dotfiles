@@ -1,4 +1,4 @@
-local Completion = require("unknownredfoxo.find_file.completion")
+local Completion = require("unknownredfoxo.interactive_prompt.completion")
 
 describe("Completion engine", function()
     local candidates = {
