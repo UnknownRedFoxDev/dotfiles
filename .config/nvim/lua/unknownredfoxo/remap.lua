@@ -13,7 +13,7 @@ vim.keymap.set("n", "<A-b>", function()
     require("unknownredfoxo.find_file").select_buffer()
 end, { desc = "Find buffer" })
 
-vim.keymap.set("n", "<A-f>", function()
+vim.keymap.set("n", "<Leader>ff", function()
     require("unknownredfoxo.find_file").select_file()
 end, { desc = "Find file" })
 
@@ -21,7 +21,7 @@ vim.keymap.set("n", "<A-x>", function()
     require("unknownredfoxo.find_file").select_executable()
 end, { desc = "Find file" })
 
-vim.keymap.set("n", "<leader>ff", function ()
+vim.keymap.set("n", "<A-f>", function ()
     require("telescope.builtin").find_files()
 end)
 
@@ -57,17 +57,8 @@ end, { noremap = true, silent = true })
 
 
 vim.keymap.set("v", "<Leader>a", ":'<,'>AlignRegex<CR>", { silent = true })
--- vim.keymap.set("n", "<A-b>", DisplayBuffers, {silent = true})
--- vim.keymap.set("n", "<A-b>", ":SwitchBuffers<CR>", { silent = true })
-
--- vim.keymap.set("n", "<A-x>", RunCommand)
 vim.keymap.set("n", "<A-X>", RunLastCommandRan)
 vim.keymap.set("n", "<C-s>", DisplayScratch, {silent = true})
-
--- vim.keymap.set('n', '<leader><A-x>', function()
---     local line = vim.api.nvim_get_current_line()
---     assert(load(line))()
--- end, { desc = "Execute current line as Lua" })
 
 vim.keymap.set('n', '<A-J>', OpenFileUnderCursor, { silent = true, noremap = true })
 vim.keymap.set('n', '<A-F>', FindFile)
