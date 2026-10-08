@@ -57,6 +57,11 @@ function M.open(opts)
         on_change = function() end,
     })
 
+    if opts.history then
+        prompt:set_history(opts.history)
+    end
+
+
     local current_matches = candidates_provider(default_input)
     prompt:set_input(default_input)
 
@@ -131,9 +136,6 @@ function M.open(opts)
         -- Typed Input
         local input_start = #label
         local input_end = input_start + #input
-        if #input > 0 then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "Normal", 0, input_start, input_end)
-        end
 
         -- First Candidate
         if #current_matches > 0 then
@@ -166,6 +168,10 @@ function M.open(opts)
 
     render()
 
+    --- ==============================================================================
+    ---                                    KEYMAPS
+    --- ==============================================================================
+
     local keymap_opts = { buffer = buf, noremap = true, silent = true, nowait = true }
 
     vim.keymap.set("n", "<CR>", function()
@@ -178,6 +184,10 @@ function M.open(opts)
             result = (#input > 0 and input)
             or (#current_matches > 0 and get_value(current_matches[1]))
             or ""
+        end
+
+        if opts.history and result ~= "" then
+            prompt:add_history(result)
         end
 
         close_ui()
@@ -199,7 +209,16 @@ function M.open(opts)
         render()
     end, keymap_opts)
 
-    -- Dictionary table with string keys requires `pairs`, NOT `ipairs`
+    vim.keymap.set("n", "<Up>", function()
+        prompt:history_up()
+        render()
+    end, keymap_opts)
+
+    vim.keymap.set("n", "<Down>", function()
+        prompt:history_down()
+        render()
+    end, keymap_opts)
+
     local word_keymaps = {
         ["<C-BS>"]     = function() prompt:delete_prev_word() end,
         ["<C-w>"]      = function() prompt:delete_prev_word() end,

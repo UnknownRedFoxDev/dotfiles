@@ -15,13 +15,10 @@ function M.select_executable(opts)
     ui.open({
         prompt = opts.prompt or "Execute> ",
         candidates = executable.get_candidates,
+        history = _G.run_command_history,
         perfer_candidate = true,
         on_submit = function(choice)
             if choice and choice ~= "" then
-                if _G.run_command_history[#_G.run_command_history] ~= choice then
-                    table.insert(_G.run_command_history, choice)
-                end
-
                 if choice:match("^grep%s") and not choice:match("%-%-color") then
                     choice = choice:gsub("^grep", "grep --color=always")
                 end
@@ -55,6 +52,9 @@ function M.select_file(opts)
                 vim.cmd("edit " .. vim.fn.fnameescape(choice))
                 if vim.uv.fs_stat(choice).type == "directory" then
                     vim.api.nvim_set_current_dir(choice)
+                else
+                    local dir = vim.fn.fnamemodify(choice, ":p:h")
+                    vim.api.nvim_set_current_dir(dir)
                 end
             end
         end,

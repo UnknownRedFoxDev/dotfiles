@@ -145,4 +145,50 @@ function Prompt:delete_next_word()
     self.input = self.input:sub(1, self.cursor) .. self.input:sub(next_pos + 1)
 end
 
+function Prompt:set_history(history_table)
+    self.history = history_table or {}
+    self.history_idx = #self.history + 1
+    self.saved_typed_input = nil
+end
+
+--- Navigates UP in history
+function Prompt:history_up()
+    if #self.history == 0 then return end
+
+    -- Stash current draft input if leaving the bottom of history
+    if self.history_idx > #self.history then
+        self.saved_typed_input = self.input
+    end
+
+    if self.history_idx > 1 then
+        self.history_idx = self.history_idx - 1
+        self.input = self.history[self.history_idx]
+        self.cursor = #self.input
+    end
+end
+
+--- Navigates DOWN in history
+function Prompt:history_down()
+    if #self.history == 0 or self.history_idx > #self.history then return end
+
+    self.history_idx = self.history_idx + 1
+
+    if self.history_idx > #self.history then
+        -- Restore saved draft
+        self.input = self.saved_typed_input or ""
+    else
+        self.input = self.history[self.history_idx]
+    end
+
+    self.cursor = #self.input
+end
+
+--- Pushes a newly submitted value into history
+function Prompt:add_history(value)
+    if not value or value == "" then return end
+    if self.history[#self.history] ~= value then
+        table.insert(self.history, value)
+    end
+end
+
 return Prompt
