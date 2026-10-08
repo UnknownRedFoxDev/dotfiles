@@ -9,6 +9,7 @@ function M.open(opts)
     opts = opts or {}
     local prefer_candidate = opts.prefer_candidate or false
     local default_input = opts.default_input or ""
+    local show_no_matches = opts.show_no_matches or false
 
     if type(opts.candidates) == "function" then
         candidates_provider = opts.candidates
@@ -111,7 +112,11 @@ function M.open(opts)
                 completion_str = "[" .. get_display(current_matches[1]) .. "]"
             end
         else
-            completion_str = "[No Matches]"
+            if show_no_matches == true then
+                completion_str = "[No Matches]"
+            else
+                completion_str = ""
+            end
         end
 
         local inline_display = label .. input .. " " .. completion_str
