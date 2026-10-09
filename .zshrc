@@ -22,5 +22,7 @@ alias cal="LC_ALL=en_US.UTF-8 cal --monday"
 alias rdg="EGL_PLATFORM=x11 DISPLAY=:0 ~/opt/raddebuger/bin/raddbg"
 alias mupdf='mupdf-x11'
 if [[ $DISPLAY ]]; then
-    xmodmap ~/.swapcaps-xmodmap -display $DISPLAY
+    if [[ -f ~/.swapcaps-xmodmap ]]; then
+        xmodmap ~/.swapcaps-xmodmap -display $DISPLAY
+    fi
 fi

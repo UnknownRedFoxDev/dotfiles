@@ -22,7 +22,7 @@ vim.keymap.set("n", "<A-x>", function()
 end, { desc = "Find file" })
 
 vim.keymap.set("n", "<A-f>", function ()
-    require("telescope.builtin").interactive_prompts()
+    require("telescope.builtin").find_files()
 end)
 
 vim.keymap.set("n", "<A-p>", function()

@@ -18,6 +18,7 @@ function M.select_executable(opts)
         history = _G.run_command_history,
         perfer_candidate = true,
         on_submit = function(choice)
+            choice = (type(choice) == "string" and choice) or (type(choice) == "table" and choice.value)
             if choice and choice ~= "" then
                 if choice:match("^grep%s") and not choice:match("%-%-color") then
                     choice = choice:gsub("^grep", "grep --color=always")
@@ -74,8 +75,24 @@ function M.select_buffer(opts)
         show_no_matches = true,
         perfer_candidate = true,
         on_submit = function(choice)
-            if choice and choice ~= "" then
-                vim.cmd("buffer " .. vim.fn.fnameescape(choice))
+            if type(choice.value) == "string" then
+                if choice.value ~= "" then
+                    vim.cmd("buffer " .. vim.fn.fnameescape(choice.value))
+                end
+            end
+
+            if choice.path and choice.path ~= "" then
+                local stat = vim.uv.fs_stat(choice.path)
+                if stat then
+                    local target_dir
+                    if stat.type == "directory" then
+                        target_dir = vim.fn.fnamemodify(choice.path, ":p")
+                    else
+                        target_dir = vim.fn.fnamemodify(choice.path, ":p:h")
+                    end
+
+                    pcall(vim.api.nvim_set_current_dir, target_dir)
+                end
             end
         end,
     })

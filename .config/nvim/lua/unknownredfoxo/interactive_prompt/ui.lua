@@ -179,10 +179,10 @@ function M.open(opts)
         local result
 
         if prefer_candidate and #current_matches > 0 then
-            result = get_value(current_matches[1]) or input
+            result = current_matches[1] or input
         else
             result = (#input > 0 and input)
-            or (#current_matches > 0 and get_value(current_matches[1]))
+            or (#current_matches > 0 and current_matches[1])
             or ""
         end
 
