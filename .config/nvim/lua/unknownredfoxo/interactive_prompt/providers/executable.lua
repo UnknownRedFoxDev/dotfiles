@@ -12,21 +12,44 @@ function M.get_candidates(input)
 
         -- Local CWD Executables (when the input starts with "./")
         if input:sub(1, 2) == "./" then
-            local cwd = vim.fn.getcwd()
-            local handle = vim.uv.fs_scandir(cwd)
+            local expanded_input = vim.fn.expand(input)
 
+            local search_dir = "."
+            local prefix = ""
+
+            if expanded_input:find("/") then
+                if expanded_input:sub(1, 1) == "/" then
+                    search_dir = expanded_input:match("^(.*/)") or "/"
+                    prefix = search_dir
+                else
+                    search_dir = expanded_input:match("^(.*/)") or "."
+                    prefix = input:match("^(.*/)") or ""
+                end
+            end
+
+            local handle = vim.uv.fs_scandir(search_dir)
+            local add = true
             if handle then
                 while true do
+                    add = true
                     local name, type_ = vim.uv.fs_scandir_next(handle)
                     if not name then break end
 
-                    -- Check if item is executable
-                    local full_path = cwd .. "/" .. name
-                    if vim.fn.executable(full_path) == 1 then
-                        local exec_str = "./" .. name
+                    local full_path = search_dir .. "/" .. name
+                    local display_name = name
+                    local item_value = prefix .. name
+
+                    if type_ == "directory" then
+                        display_name = display_name .. "/"
+                        item_value = item_value .. "/"
+                    elseif vim.fn.executable(full_path) ~= 1 then
+                        add = false
+                    end
+
+                    if add == true then
                         table.insert(candidates, {
-                            display = exec_str,
-                            value = exec_str,
+                            display = display_name,
+                            value = item_value,
                         })
                     end
                 end
