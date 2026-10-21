@@ -99,11 +99,17 @@ function M.open(opts)
 
         -- When only 1 candidate is found: [User input] [candidate]
         elseif #current_matches == 1 then
-            local matched = Completion.get_value(current_matches[1])
+            local matched_value = Completion.get_value(current_matches[1])
+            local matched_display = Completion.get_display(current_matches[1])
+
+            local suffix_source = matched_value
+            -- if matched_value:lower():sub(1, #input) == input:lower() then
+            --     suffix_source = matched_value
+            -- end
 
             -- Eat what is already typed
-            if matched:lower():sub(1, #input) == input:lower() then
-                local suffix = matched:sub(#input + 1)
+            if suffix_source:lower():sub(1, #input) == input:lower() then
+                local suffix = suffix_source:sub(#input + 1)
                 if #suffix > 0 then
                     completion_str = "[" .. suffix .. "]"
                 else
@@ -112,7 +118,7 @@ function M.open(opts)
                 end
             else
             -- Otherwise show the complete candidate
-                completion_str = "[" .. Completion.get_display(current_matches[1]) .. "]"
+                completion_str = "[" .. matched_display .. "]"
             end
 
         -- When no candidate was found
@@ -184,15 +190,11 @@ function M.open(opts)
 
     vim.keymap.set("n", "<CR>", function()
         local input = prompt:get_input()
-        local result
+        local result = #input > 0 and input or ""
 
         -- In cases where the candidate is prefered, try to select it if present, otherwise return the input
-        if prefer_candidate and #current_matches > 0 then
-            result = Completion.get_value(current_matches[1]) or input
-        else
-            result = (#input > 0 and input)
-            or (#current_matches > 0 and Completion.get_value(current_matches[1]))
-            or ""
+        if prefer_candidate == true and #current_matches >= 1 then
+            result = Completion.get_value(current_matches[1])
         end
 
         if opts.history and result ~= "" then

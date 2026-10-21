@@ -4,6 +4,7 @@ local executable      = require("unknownredfoxo.interactive_prompt.providers.exe
 local ui              = require("unknownredfoxo.interactive_prompt.ui")
 local buffers         = require("unknownredfoxo.buffers")
 local cwd             = require("unknownredfoxo.interactive_prompt.cwd")
+local completion      = require("unknownredfoxo.interactive_prompt.completion")
 
 local M = {}
 _G.run_command_history = _G.run_command_history or {}
@@ -17,7 +18,7 @@ function M.select_executable(opts)
         prompt = opts.prompt or "Execute> ",
         candidates = executable.get_candidates,
         history = _G.run_command_history,
-        perfer_candidate = true,
+        prefer_candidate = true,
         on_submit = function(choice)
             if choice and choice ~= "" then
                 if choice:match("^grep%s") and not choice:match("%-%-color") then
@@ -47,7 +48,7 @@ function M.select_file(opts)
         candidates = file_provider.get_candidates,
         show_no_matches = true,
         default_input = initial_dir,
-        perfer_candidate = false,
+        prefer_candidate = false,
         on_submit = function(choice)
             if choice and choice ~= "" then
                 vim.cmd("edit " .. vim.fn.fnameescape(choice))
@@ -84,11 +85,21 @@ function M.select_buffer(opts)
         prompt = opts.prompt or "Switch buffer: ",
         candidates = candidates,
         show_no_matches = true,
-        perfer_candidate = true,
+        prefer_candidate = true,
         on_submit = function(choice)
             if choice and choice ~= "" then
-                vim.cmd("buffer " .. vim.fn.fnameescape(choice))
-                cwd.sync_cwd(vim.api.nvim_get_current_buf())
+                local valid = false
+                for _, cand in ipairs(candidates) do
+                    if completion.get_value(cand) == choice then
+                        valid = true
+                    end
+                end
+                if valid then
+                    vim.cmd("buffer " .. vim.fn.fnameescape(choice))
+                    cwd.sync_cwd(vim.api.nvim_get_current_buf())
+                else
+                    vim.notify("Buffer not found: " .. choice, vim.log.levels.ERROR)
+                end
             end
         end,
     })

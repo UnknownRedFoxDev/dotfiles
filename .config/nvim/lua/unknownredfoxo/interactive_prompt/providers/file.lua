@@ -29,12 +29,12 @@ function M.get_candidates(input)
         local name, type_ = vim.uv.fs_scandir_next(handle)
         if not name then break end
 
-        local item_path = prefix .. name
         local display_name = name
+        local item_path = prefix .. name
 
         if type_ == "directory" then
-            item_path = item_path .. "/"
             display_name = display_name .. "/"
+            item_path = item_path .. "/"
         end
 
         table.insert(entries, {
