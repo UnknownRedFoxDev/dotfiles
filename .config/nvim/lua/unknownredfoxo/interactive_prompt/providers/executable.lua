@@ -27,11 +27,12 @@ function M.get_candidates(input)
                 end
             end
 
+            local directories = {}
+            local executables = {}
+
             local handle = vim.uv.fs_scandir(search_dir)
-            local add = true
             if handle then
                 while true do
-                    add = true
                     local name, type_ = vim.uv.fs_scandir_next(handle)
                     if not name then break end
 
@@ -42,18 +43,22 @@ function M.get_candidates(input)
                     if type_ == "directory" then
                         display_name = display_name .. "/"
                         item_value = item_value .. "/"
-                    elseif vim.fn.executable(full_path) ~= 1 then
-                        add = false
-                    end
-
-                    if add == true then
-                        table.insert(candidates, {
+                        table.insert(directories, {
+                            display = display_name,
+                            value = item_value,
+                        })
+                    elseif vim.fn.executable(full_path) == 1 then
+                        table.insert(executables, {
                             display = display_name,
                             value = item_value,
                         })
                     end
                 end
             end
+
+            -- Executables first followed by directories
+            for _, cand in ipairs(executables) do table.insert(candidates, cand) end
+            for _, cand in ipairs(directories) do table.insert(candidates, cand) end
             return candidates
         end
 

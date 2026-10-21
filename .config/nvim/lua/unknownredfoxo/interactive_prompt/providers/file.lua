@@ -24,7 +24,8 @@ function M.get_candidates(input)
     local handle = vim.uv.fs_scandir(search_dir)
     if not handle then return {} end
 
-    local entries = {}
+    local directories = {}
+    local files = {}
     while true do
         local name, type_ = vim.uv.fs_scandir_next(handle)
         if not name then break end
@@ -35,13 +36,22 @@ function M.get_candidates(input)
         if type_ == "directory" then
             display_name = display_name .. "/"
             item_path = item_path .. "/"
+            table.insert(directories, {
+                display = display_name,
+                value = item_path,
+            })
+        else
+            table.insert(files, {
+                display = display_name,
+                value = item_path,
+            })
         end
-
-        table.insert(entries, {
-            display = display_name,
-            value = item_path,
-        })
     end
+
+    -- Directories followed by files
+    local entries = {}
+    for _, entry in ipairs(directories) do table.insert(entries, entry) end
+    for _, entry in ipairs(files) do table.insert(entries, entry) end
 
     return entries
 end
