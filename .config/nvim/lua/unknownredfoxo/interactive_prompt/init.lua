@@ -3,6 +3,7 @@ local file_provider   = require("unknownredfoxo.interactive_prompt.providers.fil
 local executable      = require("unknownredfoxo.interactive_prompt.providers.executable")
 local ui              = require("unknownredfoxo.interactive_prompt.ui")
 local buffers         = require("unknownredfoxo.buffers")
+local cwd             = require("unknownredfoxo.interactive_prompt.cwd")
 
 local M = {}
 _G.run_command_history = _G.run_command_history or {}
@@ -50,11 +51,22 @@ function M.select_file(opts)
         on_submit = function(choice)
             if choice and choice ~= "" then
                 vim.cmd("edit " .. vim.fn.fnameescape(choice))
-                if vim.uv.fs_stat(choice).type == "directory" then
-                    vim.api.nvim_set_current_dir(choice)
+                local ok, stat = pcall(vim.uv.fs_stat, choice)
+                if ok and stat then
+                    if stat.type == "directory" then
+                        vim.api.nvim_set_current_dir(choice)
+                    else
+                        local dir = vim.fn.fnamemodify(choice, ":p:h")
+                        vim.api.nvim_set_current_dir(dir)
+                    end
                 else
-                    local dir = vim.fn.fnamemodify(choice, ":p:h")
-                    vim.api.nvim_set_current_dir(dir)
+                    -- File doesn't exist yet, set CWD to parent (or to path if it ends with /)
+                    if choice:sub(-1) == "/" then
+                        vim.api.nvim_set_current_dir(choice)
+                    else
+                        local dir = vim.fn.fnamemodify(choice, ":p:h")
+                        vim.api.nvim_set_current_dir(dir)
+                    end
                 end
             end
         end,

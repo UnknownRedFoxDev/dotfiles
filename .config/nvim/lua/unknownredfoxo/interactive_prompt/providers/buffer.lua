@@ -37,7 +37,7 @@ function M.get_candidates()
         end
         table.insert(candidates, {
             display = display_name,
-            value = item.full_path,
+            value = display_name,
         })
     end
 

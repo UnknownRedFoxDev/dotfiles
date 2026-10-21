@@ -219,13 +219,17 @@ function M.open(opts)
     end, keymap_opts)
 
     vim.keymap.set("n", "<Up>", function()
-        prompt:history_up()
-        render()
+        if opts.history then
+            prompt:history_up()
+            render()
+        end
     end, keymap_opts)
 
     vim.keymap.set("n", "<Down>", function()
-        prompt:history_down()
-        render()
+        if opts.history then
+            prompt:history_down()
+            render()
+        end
     end, keymap_opts)
 
     local word_keymaps = {
