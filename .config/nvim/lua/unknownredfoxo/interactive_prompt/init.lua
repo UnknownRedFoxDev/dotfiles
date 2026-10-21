@@ -76,6 +76,7 @@ function M.select_buffer(opts)
         on_submit = function(choice)
             if choice and choice ~= "" then
                 vim.cmd("buffer " .. vim.fn.fnameescape(choice))
+                cwd.sync_cwd(vim.api.nvim_get_current_buf())
             end
         end,
     })

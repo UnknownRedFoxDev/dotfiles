@@ -29,11 +29,16 @@ function M.get_candidates()
     local candidates = {}
     for _, item in ipairs(raw_buffers) do
         -- Use relative path if the basename is shared across multiple buffers
+        local display_name
         if counts[item.basename] > 1 then
-            table.insert(candidates, item.relative)
+            display_name = item.relative
         else
-            table.insert(candidates, item.basename)
+            display_name = item.basename
         end
+        table.insert(candidates, {
+            display = display_name,
+            value = item.full_path,
+        })
     end
 
     return candidates

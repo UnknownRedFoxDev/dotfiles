@@ -46,7 +46,6 @@ function M.get_candidates(input)
                     if not name then break end
 
                     if not seen[name] then
-                        -- Verify executable status
                         local full_path = dir .. "/" .. name
                         if vim.fn.executable(full_path) == 1 then
                             seen[name] = true

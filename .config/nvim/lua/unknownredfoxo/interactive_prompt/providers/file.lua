@@ -1,7 +1,7 @@
 local M = {}
 
 --- Resolves files and directories dynamically based on the current input path
---- @param input string Current prompt input
+--- @param input string User prompt input
 --- @return table # Array of relative paths/filenames
 function M.get_candidates(input)
     input = input or ""

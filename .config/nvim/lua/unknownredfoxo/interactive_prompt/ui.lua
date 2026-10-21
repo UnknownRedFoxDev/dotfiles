@@ -8,8 +8,8 @@ vim.api.nvim_set_hl(0, "InteractivePromptCursor", { default = true, reverse = tr
 function M.open(opts)
     opts = opts or {}
     local prefer_candidate = opts.prefer_candidate or false
-    local default_input = opts.default_input or ""
     local show_no_matches = opts.show_no_matches or false
+    local default_input = opts.default_input or ""
 
     if type(opts.candidates) == "function" then
         candidates_provider = opts.candidates
@@ -34,7 +34,7 @@ function M.open(opts)
 
     io.stdout:write("\27[?25l")
 
-    local ns_id = vim.api.nvim_create_namespace("emacs_prompt_ui")
+    local ns_id = vim.api.nvim_create_namespace("InteractivePromptUI")
     local got_cleaned = false
     local og_timeout = vim.o.timeout
     local og_timeoutlen = vim.o.timeoutlen
@@ -69,20 +69,12 @@ function M.open(opts)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
     end
 
-    local function get_display(cand)
-        if not cand then return "" end
-        return type(cand) == "table" and cand.display or cand
-    end
-
-    local function get_value(cand)
-        if not cand then return "" end
-        return type(cand) == "table" and cand.value or cand
-    end
-
     local function render(override_matches)
         local input = prompt:get_input()
         local cursor_pos = prompt:get_cursor()
 
+        -- Whenever the current matches is dynamically regenerated
+        -- or is a single-pass generated list of candidates (e.g. buffers)
         if override_matches then
             current_matches = override_matches
         else
@@ -93,37 +85,42 @@ function M.open(opts)
         local max_visible = 5
         local completion_str = ""
 
+        -- More than 1 candidate found from user input: [User input] {cand1 | cand2 | cand3 | cand4 | ...}
         if #current_matches > 1 then
             local display_cand = {}
             local visible_limit = math.min(#current_matches, max_visible)
             for i = 2, visible_limit do
-                table.insert(display_cand, get_display(current_matches[i]))
+                table.insert(display_cand, Completion.get_display(current_matches[i]))
             end
             local available_cand = table.concat(display_cand, " | ")
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
 
-            completion_str = string.format("{%s | %s%s}", get_display(current_matches[1]), available_cand, extra_fluff)
+            completion_str = string.format("{%s | %s%s}", Completion.get_display(current_matches[1]), available_cand, extra_fluff)
 
+        -- When only 1 candidate is found: [User input] [candidate]
         elseif #current_matches == 1 then
-            local matched = get_value(current_matches[1])
+            local matched = Completion.get_value(current_matches[1])
+
+            -- Eat what is already typed
             if matched:lower():sub(1, #input) == input:lower() then
                 local suffix = matched:sub(#input + 1)
                 if #suffix > 0 then
                     completion_str = "[" .. suffix .. "]"
                 else
+            -- Everything is already eaten
                     completion_str = ""
                 end
             else
-                completion_str = "[" .. get_display(current_matches[1]) .. "]"
+            -- Otherwise show the complete candidate
+                completion_str = "[" .. Completion.get_display(current_matches[1]) .. "]"
             end
+
+        -- When no candidate was found
         else
-            if show_no_matches == true then
-                completion_str = "[No Matches]"
-            else
-                completion_str = ""
-            end
+            completion_str = (show_no_matches == true and "[No Matches]") or ""
         end
 
+        -- [Label] [User input] [candidate(s)]
         local inline_display = label .. input .. " " .. completion_str
         update(inline_display)
 
@@ -131,6 +128,7 @@ function M.open(opts)
         vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
         -- Label
+        -- Bold Purple-ish with Nightfox's duskfox theme
         vim.api.nvim_buf_add_highlight(buf, ns_id, "Special", 0, 0, #label)
 
         -- Typed Input
@@ -141,7 +139,9 @@ function M.open(opts)
         if #current_matches > 0 then
             -- Skip space and opening brace '{' or '[' + space
             local match_start = input_end + 2
-            local match_end = match_start + #get_display(current_matches[1])
+            local match_end = match_start + #Completion.get_display(current_matches[1])
+
+            -- Bright orange with Nightfox's duskfox theme
             vim.api.nvim_buf_add_highlight(buf, ns_id, "MatchParen", 0, match_start, match_end)
         end
 
@@ -166,6 +166,14 @@ function M.open(opts)
         end,
     })
 
+    vim.api.nvim_create_autocmd("WinLeave", {
+        buffer = buf,
+        once = true,
+        callback = function()
+            close_ui()
+        end,
+    })
+
     render()
 
     --- ==============================================================================
@@ -178,11 +186,12 @@ function M.open(opts)
         local input = prompt:get_input()
         local result
 
+        -- In cases where the candidate is prefered, try to select it if present, otherwise return the input
         if prefer_candidate and #current_matches > 0 then
-            result = get_value(current_matches[1]) or input
+            result = Completion.get_value(current_matches[1]) or input
         else
             result = (#input > 0 and input)
-            or (#current_matches > 0 and get_value(current_matches[1]))
+            or (#current_matches > 0 and Completion.get_value(current_matches[1]))
             or ""
         end
 
@@ -252,13 +261,14 @@ function M.open(opts)
         end
     end, keymap_opts)
 
+    -- Cycle candidates from right to left
     vim.keymap.set("n", "<Tab>", function()
         if #current_matches == 0 then return end
 
         local input = prompt:get_input()
 
         if #current_matches == 1 then
-            local choice = get_value(current_matches[1])
+            local choice = Completion.get_value(current_matches[1])
             prompt:set_input(choice)
 
             -- If candidate is a directory, re-evaluate candidates immediately
@@ -286,6 +296,7 @@ function M.open(opts)
         render(current_matches)
     end, keymap_opts)
 
+    -- Cycle candidates from left to right
     vim.keymap.set("n", "<S-Tab>", function()
         if #current_matches == 0 then return end
 
