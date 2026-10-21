@@ -322,6 +322,23 @@ function M.open(opts)
         render(current_matches)
     end, keymap_opts)
 
+
+    vim.keymap.set("n", "<C-v>", function()
+        local clipboard = vim.fn.getreg('+')
+        if clipboard and clipboard ~= "" then
+            prompt:set_input(prompt:get_input() .. clipboard)
+            render()
+        end
+    end, keymap_opts)
+
+    -- Copy current input to system clipboard
+    -- vim.keymap.set("n", "<C-y>", function()
+    --     local input = prompt:get_input()
+    --     if input ~= "" then
+    --         vim.fn.setreg('+', input)
+    --     end
+    -- end, keymap_opts)
+
     for i = 32, 126 do
         local char = string.char(i)
         vim.keymap.set("n", char, function()
