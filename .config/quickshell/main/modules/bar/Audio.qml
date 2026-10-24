@@ -69,7 +69,8 @@ Rectangle {
         Rectangle {
             id: volumeBar
             Layout.alignment: Qt.AlignVCenter
-            width: muted ? 0 : 75
+            // width: muted ? 0 : 75
+            width: 75
             height: 12
             color: "#CDCBE0"
             radius: 10

@@ -6,7 +6,7 @@ Rectangle {
     required property string textColor
     required property string bgColor
     required property string textDisplay
-    implicitWidth: displayedText.implicitWidth
+    implicitWidth: displayedText.implicitWidth + 5
 
     height: barHeight
     color: bgColor

@@ -128,8 +128,8 @@ Scope {
                 }
 
                 // ------------------------- Backlight -------------------------
-                Backlight {
-                    id: blightModule
+                BacklightWidget {
+                    id: backlighModule
                 }
 
                 Separator {

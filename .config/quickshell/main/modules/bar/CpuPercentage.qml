@@ -11,7 +11,7 @@ Singleton {
 
     Process {
         id: cpuProc
-        command: ["sh", "-c", "~/.config/quickshell/bar/scripts/cpu.sh"]
+        command: ["sh", "-c", "~/.config/quickshell/main/modules/bar/scripts/cpu.sh"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
