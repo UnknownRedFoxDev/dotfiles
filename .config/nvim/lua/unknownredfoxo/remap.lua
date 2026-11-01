@@ -19,11 +19,11 @@ end, { desc = "Find file" })
 
 vim.keymap.set("n", "<A-x>", function()
     require("unknownredfoxo.interactive_prompt").select_executable()
-end, { desc = "Find file" })
+end, { desc = "Run Executable" })
 
-vim.keymap.set("n", "<A-f>", function ()
-    require("telescope.builtin").interactive_prompts()
-end)
+vim.keymap.set("n", "<A-m>", function()
+    require("unknownredfoxo.interactive_prompt").man_page()
+end, { desc = "Find man page" })
 
 vim.keymap.set("n", "<A-p>", function()
     require("telescope.builtin").git_files()

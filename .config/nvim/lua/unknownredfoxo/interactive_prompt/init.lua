@@ -105,4 +105,47 @@ function M.select_buffer(opts)
     })
 end
 
+--- Opens a man page in a non-modifiable buffer
+--- @param opts table|nil configuration options
+function M.man_page(opts)
+    opts = opts or {}
+
+    ui.open({
+        prompt = "man> ",
+        candidates = function() return {} end,
+        show_no_matches = false,
+        prefer_candidate = false,
+        on_submit = function(choice)
+            if choice and choice ~= "" then
+                local buf_name = "*Man " .. choice .. "*"
+                local man_cmd = string.format("man %s | col -b", vim.fn.shellescape(choice))
+
+                -- Create buffer
+                local buf = vim.api.nvim_create_buf(false, true)
+                vim.api.nvim_buf_set_name(buf, buf_name)
+                vim.bo[buf].buftype = "nofile"
+                vim.bo[buf].bufhidden = "hide"
+                vim.bo[buf].modifiable = true
+                vim.bo[buf].filetype = "man"
+
+                -- Run man command and capture output
+                local output = vim.fn.system(man_cmd)
+                local lines = vim.split(output, "\n")
+
+                -- Remove empty trailing lines
+                while #lines > 0 and lines[#lines] == "" do
+                    table.remove(lines)
+                end
+
+                vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+                vim.bo[buf].modifiable = false
+
+                -- Open in current window
+                vim.cmd(string.format("botright %dsplit", vim.o.lines/2))
+                vim.api.nvim_set_current_buf(buf)
+            end
+        end,
+    })
+end
+
 return M

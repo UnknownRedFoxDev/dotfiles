@@ -322,6 +322,22 @@ function M.open(opts)
         render(current_matches)
     end, keymap_opts)
 
+    vim.keymap.set("n", "<C-l>", function()
+        local result = prompt:get_input()
+        if #current_matches > 0 then
+            result = result .. Completion.get_display(current_matches[1])
+        end
+
+        if result and result ~= "" then
+            if opts.history then
+                prompt:add_history(result)
+            end
+            close_ui()
+            if opts.on_submit then
+                opts.on_submit(result)
+            end
+        end
+    end, keymap_opts)
 
     vim.keymap.set("n", "<C-v>", function()
         local clipboard = vim.fn.getreg('+')

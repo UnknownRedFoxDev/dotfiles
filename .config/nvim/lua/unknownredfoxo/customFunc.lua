@@ -726,7 +726,7 @@ end
 function SwitchSplitToMain()
     local current_buf = vim.api.nvim_get_current_buf()
     local current_win = vim.api.nvim_get_current_win()
-    vim.cmd("wincmd p");
+    vim.cmd("wincmd k");
     local target_win = vim.api.nvim_get_current_win()
     if target_win ~= current_win then
         vim.api.nvim_win_set_buf(target_win, current_buf)
