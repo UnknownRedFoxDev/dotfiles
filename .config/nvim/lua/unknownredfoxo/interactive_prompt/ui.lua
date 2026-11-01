@@ -172,7 +172,23 @@ function M.open(opts)
 
         -- Cursor
         local hl_cursor = #label + cursor_pos
-        vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
+        if #input > 0 and cursor_pos <= #input then
+            if #completion_str > 0 then
+                vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
+            else
+                vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
+                    virt_text = { { " ", "InteractivePromptCursor" } },
+                    virt_text_pos = "overlay",
+                })
+            end
+        else
+            if show_no_matches == false then
+                vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
+                    virt_text = { { " ", "InteractivePromptCursor" } },
+                    virt_text_pos = "overlay",
+                })
+            end
+        end
     end
 
     vim.api.nvim_create_autocmd("BufWipeout", {

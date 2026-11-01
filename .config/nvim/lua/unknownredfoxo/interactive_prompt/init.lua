@@ -1,6 +1,7 @@
 local buffer_provider = require("unknownredfoxo.interactive_prompt.providers.buffer")
 local file_provider   = require("unknownredfoxo.interactive_prompt.providers.file")
 local executable      = require("unknownredfoxo.interactive_prompt.providers.executable")
+local man_pages       = require("unknownredfoxo.interactive_prompt.providers.man_pages")
 local ui              = require("unknownredfoxo.interactive_prompt.ui")
 local buffers         = require("unknownredfoxo.buffers")
 local cwd             = require("unknownredfoxo.interactive_prompt.cwd")
@@ -18,6 +19,7 @@ function M.select_executable(opts)
         prompt = opts.prompt or "Execute> ",
         candidates = executable.get_candidates,
         history = _G.run_command_history,
+        show_no_matches = true,
         prefer_candidate = true,
         on_submit = function(choice)
             if choice and choice ~= "" then
@@ -109,10 +111,11 @@ end
 --- @param opts table|nil configuration options
 function M.man_page(opts)
     opts = opts or {}
+    local candidates = man_pages.get_candidates()
 
     ui.open({
         prompt = "man> ",
-        candidates = function() return {} end,
+        candidates = candidates,
         show_no_matches = false,
         prefer_candidate = false,
         on_submit = function(choice)
