@@ -31,7 +31,9 @@ hl.monitor({
 -- Set programs that you use
 local terminal    = "ghostty"
 local fileManager = "nautilus"
+-- local fileManager = "hyprfm >/dev/null 2>/dev/null"
 local menu        = "pgrep rofi && killall rofi || rofi -show run"
+local zooming     = "zoomer @>/dev/null"
 -- local menu        = "hyprlauncher"
 
 -------------------
@@ -45,7 +47,7 @@ local menu        = "pgrep rofi && killall rofi || rofi -show run"
 --
 hl.on("hyprland.start", function ()
   hl.exec_cmd("hyprpaper")
-  hl.exec_cmd("qs 2>/dev/null >/dev/null")
+  hl.exec_cmd("qs -c main 2>/dev/null >/dev/null")
   hl.exec_cmd("$HOME/.config/hypr/import_env tmux")
 end)
 
@@ -274,7 +276,7 @@ hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("blazinlock -s"))
 hl.bind(mainMod .. " + equal", hl.dsp.exec_cmd("hyprctl keyword cursor:zoom_factor $(awk \"BEGIN {print $(hyprctl getoption cursor:zoom_factor | grep 'float:' | awk '{print $2}') + 0.5}\")"))
 hl.bind(mainMod .. " + minus", hl.dsp.exec_cmd("hyprctl keyword cursor:zoom_factor $(awk \"BEGIN {print $(hyprctl getoption cursor:zoom_factor | grep 'float:' | awk '{print $2}') - 0.5}\")"))
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("hyprpicker | wl-copy"))
-hl.bind(mainMod .. " + SHIFT + L", hl.dsp.exec_cmd("zoomer"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(zooming))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("innu"))
 hl.bind(mainMod .. " + CONTROL + SHIFT + S", hl.dsp.exec_cmd("flameshot gui"))
 
@@ -377,3 +379,12 @@ hl.window_rule({
     float = true,
     center = true,
 })
+
+-- hl.window_rule({
+--     name  = "innu-nm",
+--     match = { title = "Innu - Network Management" },
+--
+--     size = {630, 865},
+--     float = true,
+--     center = true,
+-- })
