@@ -84,6 +84,8 @@ function M.open(opts)
 
         local max_visible = 5
         local completion_str = ""
+        local common = Completion.common_prefix(current_matches, input)
+        local common_suffix = common:sub(#input + 1)
 
         -- More than 1 candidate found from user input: [User input] {cand1 | cand2 | cand3 | cand4 | ...}
         if #current_matches > 1 then
@@ -95,7 +97,20 @@ function M.open(opts)
             local available_cand = table.concat(display_cand, " | ")
             local extra_fluff = #current_matches > max_visible and " | ..." or ""
 
-            completion_str = string.format("{%s | %s%s}", Completion.get_display(current_matches[1]), available_cand, extra_fluff)
+            if #common > #input then
+                local remaining_cands = {}
+                for i = 1, #current_matches do
+                    local disp = Completion.get_display(current_matches[i])
+                    local suffix = disp:sub(#common + 1)
+                    if suffix ~= "" then
+                        table.insert(remaining_cands, suffix)
+                    end
+                end
+                completion_str = string.format("[%s]{%s | %s%s}", common_suffix, Completion.get_display(current_matches[1]), available_cand, extra_fluff)
+            else
+                completion_str = string.format("{%s | %s%s}", Completion.get_display(current_matches[1]), available_cand, extra_fluff)
+            end
+            -- completion_str = string.format("{%s | %s%s}", Completion.get_display(current_matches[1]), available_cand, extra_fluff)
 
         -- When only 1 candidate is found: [User input] [candidate]
         elseif #current_matches == 1 then
@@ -127,7 +142,8 @@ function M.open(opts)
         end
 
         -- [Label] [User input] [candidate(s)]
-        local inline_display = label .. input .. " " .. completion_str
+        -- local inline_display = label .. input .. " " .. completion_str
+        local inline_display = label .. input .. completion_str
         update(inline_display)
 
         -- ========= HIGHLIGHTS =========
@@ -143,8 +159,11 @@ function M.open(opts)
 
         -- First Candidate
         if #current_matches > 0 then
-            -- Skip space and opening brace '{' or '[' + space
-            local match_start = input_end + 2
+            -- Skip space and opening brace '[(common_prefix)]'
+            -- Skip space and opening brace '{' or '['
+            local common_suffix_skip = #common_suffix > 0 and 2+#common_suffix or 0
+            -- local match_start = input_end + 2 + common_suffix_skip
+            local match_start = input_end + 1 + common_suffix_skip
             local match_end = match_start + #Completion.get_display(current_matches[1])
 
             -- Bright orange with Nightfox's duskfox theme
@@ -153,15 +172,7 @@ function M.open(opts)
 
         -- Cursor
         local hl_cursor = #label + cursor_pos
-        if cursor_pos < #input then
-            vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
-        else
-            -- Fallback
-            vim.api.nvim_buf_set_extmark(buf, ns_id, 0, hl_cursor, {
-                virt_text = { { " ", "InteractivePromptCursor" } },
-                virt_text_pos = "overlay",
-            })
-        end
+        vim.api.nvim_buf_add_highlight(buf, ns_id, "InteractivePromptCursor", 0, hl_cursor, hl_cursor + 1)
     end
 
     vim.api.nvim_create_autocmd("BufWipeout", {
@@ -325,7 +336,7 @@ function M.open(opts)
     vim.keymap.set("n", "<C-l>", function()
         local result = prompt:get_input()
         if #current_matches > 0 then
-            result = result .. Completion.get_display(current_matches[1])
+            result = Completion.get_value(current_matches[1])
         end
 
         if result and result ~= "" then

@@ -123,11 +123,12 @@ function Prompt:get_next_word_pos()
 end
 
 function Prompt:move_to_prev_word()
-    self.cursor = self:get_prev_word_pos()+1
+    self.cursor = self:get_prev_word_pos()
 end
 
 function Prompt:move_to_next_word()
-    self.cursor = self:get_next_word_pos()+1
+    local new_pos = self:get_next_word_pos()
+    self.cursor = (new_pos+1 > #self.input and new_pos) or new_pos+1
 end
 
 function Prompt:delete_prev_word()
