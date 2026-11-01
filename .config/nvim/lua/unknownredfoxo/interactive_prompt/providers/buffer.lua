@@ -4,11 +4,12 @@ local M = {}
 --- @return table # Array of buffer paths/names
 function M.get_candidates()
     local v = vim.api
+    local current_buf = vim.api.nvim_get_current_buf()
     local raw_buffers = {}
     local counts = {}
 
     for _, buf in ipairs(v.nvim_list_bufs()) do
-        if v.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
+        if v.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and buf ~= current_buf then
             local full_path = v.nvim_buf_get_name(buf)
 
             if full_path ~= "" then
